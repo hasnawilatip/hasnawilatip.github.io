@@ -24,8 +24,18 @@ function doPost(e) {
 
 function handleRequest(e) {
   try {
-    const action = e.parameter.action;
-    const data = e.parameter.data ? JSON.parse(e.parameter.data) : {};
+    // Baca parameter — bisa dari GET query string atau POST body
+    let action, data;
+    if (e.parameter.action) {
+      action = e.parameter.action;
+      data = e.parameter.data ? JSON.parse(e.parameter.data) : {};
+    } else if (e.postData && e.postData.contents) {
+      const body = JSON.parse(e.postData.contents);
+      action = body.action;
+      data = body.data || {};
+    } else {
+      return response({ error: 'No action specified' }, 400);
+    }
 
     switch (action) {
       case 'getUsers':       return response(getUsers());

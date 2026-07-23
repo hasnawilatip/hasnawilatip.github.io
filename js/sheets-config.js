@@ -26,12 +26,10 @@ const SheetsDB = {
   /** Panggil Apps Script API */
   async _call(action, data) {
     const url = this.getUrl();
-    const params = new URLSearchParams({ action });
-    if (data) params.append('data', JSON.stringify(data));
-
-    const response = await fetch(url + '?' + params.toString(), {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, data: data || {} })
     });
 
     if (!response.ok) throw new Error('Server error: ' + response.status);
