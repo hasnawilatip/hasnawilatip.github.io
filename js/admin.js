@@ -915,8 +915,8 @@ const AdminDashboard = {
       }
     }
 
-    updateProgress('✅ Selesai!');
-    this._saveBatchResults(subjectId, gradeKey, generatedContent, allTopics);
+    updateProgress('✅ Selesai! Menyimpan ke Sheets...');
+    await this._saveBatchResults(subjectId, gradeKey, generatedContent, allTopics);
 
     // Tampilkan hasil
     let resultHtml = `<div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
@@ -934,7 +934,7 @@ const AdminDashboard = {
   },
 
   /** Simpan hasil batch generate ke overrides */
-  _saveBatchResults(subjectId, gradeKey, generatedContent, allTopics) {
+  async _saveBatchResults(subjectId, gradeKey, generatedContent, allTopics) {
     const overrides = this.loadOverrides();
     if (!overrides[subjectId]) overrides[subjectId] = {};
     if (!overrides[subjectId][gradeKey]) {
@@ -977,8 +977,8 @@ const AdminDashboard = {
     }
 
     this.saveOverrides(overrides);
-    // Sync ke Sheets
-    this.syncToSheets(subjectId, overrides);
+    // Sync ke Sheets (tunggu selesai)
+    await this.syncToSheets(subjectId, overrides);
   },
   showAIGenerate(type) {
     if (!this._checkAdmin()) return;

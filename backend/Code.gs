@@ -158,17 +158,17 @@ function saveContent(data) {
   const sheet = ss.getSheetByName('content');
   const rows = sheet.getDataRange().getValues();
 
-  // Hapus baris lama untuk subjectId + gradeKey ini
+  // Hapus baris lama untuk subjectId ini
   for (let i = rows.length - 1; i >= 1; i--) {
     if (rows[i][0] === data.subjectId) {
       sheet.deleteRow(i + 1);
     }
   }
 
-  // Simpan baru
-  for (const gradeKey of ['k7', 'k8', 'k9']) {
-    if (data.overrides[gradeKey]) {
-      sheet.appendRow([data.subjectId, gradeKey, JSON.stringify(data.overrides[gradeKey]), new Date().toISOString()]);
+  // Simpan SEMUA data override (k7, k8, k9, fillBlank, trueFalse, dll)
+  if (data.overrides) {
+    for (const key of Object.keys(data.overrides)) {
+      sheet.appendRow([data.subjectId, key, JSON.stringify(data.overrides[key]), new Date().toISOString()]);
     }
   }
   return { success: true };
