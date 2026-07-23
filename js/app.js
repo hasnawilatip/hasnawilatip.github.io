@@ -188,11 +188,6 @@ const App = {
     this.pushState({ view: 'landing' });
   },
 
-      </div>
-    `;
-    this.history = [{ view: 'landing' }];
-  },
-
   /** Tombol Home → sesuai role */
   _goHome() {
     const user = Auth.currentUser();
