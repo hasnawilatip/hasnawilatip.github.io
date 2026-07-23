@@ -593,11 +593,65 @@ const App = {
         </div>` : ''}
 
         <div class="flex-center mt-2">
+          <button class="btn btn-primary btn-sm" onclick="App.showPerangkatMapel('${subjectId}')">📋 Perangkat</button>
           <button class="btn btn-secondary" onclick="App.goBack()">📚 Kembali</button>
         </div>
       </div>
     `;
     this.pushState({ view: 'subject', subjectId: subjectId });
+  },
+
+  /** Tampilkan perangkat pembelajaran untuk mapel tertentu */
+  async showPerangkatMapel(subjectId) {
+    const info = this._getSubjectInfo(subjectId);
+    const main = document.getElementById('mainContent');
+
+    main.innerHTML = `<div class="fade-in" style="max-width:700px;margin:0 auto;"><div class="section-header"><h2>📋 Perangkat ${info.name}</h2><p style="color:var(--gray-700);">⏳ Memuat...</p></div></div>`;
+
+    let items = [];
+    try {
+      if (typeof FB !== 'undefined') {
+        const snap = await FB.db.ref('perangkat').once('value');
+        const all = snap.val() || {};
+        items = Object.entries(all)
+          .filter(([k, v]) => v.subjectId === subjectId)
+          .map(([k, v]) => ({ id: k, ...v }));
+      }
+    } catch(e) {}
+
+    const typeIcons = { rpp: '📖', silabus: '📋', prota: '📅', bahanajar: '📚', lkpd: '✍️', media: '🎯', kisikisi: '🎯', rubrik: '📐', remedial: '🔄' };
+    const typeLabels = { rpp: 'RPP/Modul Ajar', silabus: 'Silabus', prota: 'Prota/Promes', bahanajar: 'Bahan Ajar', lkpd: 'LKPD', media: 'Media', kisikisi: 'Kisi-Kisi', rubrik: 'Rubrik', remedial: 'Remedial' };
+
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:700px;margin:0 auto;">
+        <div class="section-header"><h2>📋 Perangkat ${info.name}</h2><p style="color:var(--gray-700);">${items.length} perangkat tersedia</p></div>
+        ${items.length === 0 ? '<p style="text-align:center;color:var(--gray-500);padding:40px;">Belum ada perangkat. Admin harus generate dulu dari Dashboard.</p>' : ''}
+        ${items.map(it => `
+          <div class="chapter-card" style="cursor:pointer;margin-bottom:8px;" onclick="App._viewPerangkat('${it.id}')">
+            <div class="chapter-num">${typeIcons[it.type]||'📄'}</div>
+            <div><div class="chapter-title">${typeLabels[it.type]||it.type} — ${it.topic || 'Semua Bab'}</div>
+            <div class="chapter-meta">${it.createdAt ? new Date(it.createdAt).toLocaleDateString('id') : ''} · Klik untuk lihat</div></div>
+          </div>
+        `).join('')}
+        <div class="flex-center mt-3"><button class="btn btn-secondary" onclick="App.goBack()">📚 Kembali</button></div>
+      </div>`;
+    this.pushState({ view: 'perangkat-mapel', subjectId });
+  },
+
+  /** View satu perangkat */
+  async _viewPerangkat(id) {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `<div class="fade-in"><p>⏳ Memuat...</p></div>`;
+    try {
+      const snap = await FB.db.ref('perangkat/' + id).once('value');
+      const data = snap.val();
+      if (!data) { main.innerHTML = '<p>Data tidak ditemukan.</p>'; return; }
+      main.innerHTML = `
+        <div class="fade-in" style="max-width:800px;margin:0 auto;">
+          <div class="content-view" style="font-size:0.9rem;">${data.content}</div>
+          <div class="flex-center mt-3"><button class="btn btn-secondary" onclick="App.goBack()">📚 Kembali</button></div>
+        </div>`;
+    } catch(e) { main.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
   },
 
   // ─── CHAPTER LIST ───

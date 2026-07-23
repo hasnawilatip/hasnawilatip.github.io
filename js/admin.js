@@ -631,7 +631,21 @@ const AdminDashboard = {
       const system = 'Kamu asisten guru profesional Kurikulum Merdeka SMP/MTs. Output HTML langsung.';
       const user = prompts[type] || prompts.rpp;
       const result = await AIAgent._callAPI(system, user);
-      resultEl.innerHTML = `<div style="background:var(--green-light);padding:16px;border-radius:8px;max-height:500px;overflow:auto;font-size:0.85rem;">${result}</div><button class="btn btn-sm btn-primary mt-2" onclick="AdminDashboard._copyResult()">📋 Copy</button><textarea id="ppCopy" style="display:none;">${this._escAttr(result)}</textarea>`;
+
+      // Simpan ke Firebase
+      if (typeof FB !== 'undefined') {
+        const key = `${subjectId}_${gradeKey}_${type}`;
+        await FB.db.ref('perangkat/' + key).set({
+          subjectId, gradeKey, type,
+          title: labels[type], topic: chapterTitle,
+          content: result, createdAt: new Date().toISOString()
+        });
+      }
+
+      resultEl.innerHTML = `<div style="background:var(--green-light);padding:16px;border-radius:8px;max-height:500px;overflow:auto;font-size:0.85rem;">${result}</div>
+        <p style="color:var(--green);margin-top:8px;">✅ Tersimpan! Guru bisa lihat di halaman mapel.</p>
+        <button class="btn btn-sm btn-primary mt-2" onclick="AdminDashboard._copyResult()">📋 Copy</button>
+        <textarea id="ppCopy" style="display:none;">${this._escAttr(result)}</textarea>`;
     } catch(e) {
       resultEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);">❌ ${e.message}</div>`;
     }
