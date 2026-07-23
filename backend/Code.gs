@@ -50,16 +50,44 @@ function response(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ─── ENSURE SHEETS EXIST ───
+// ─── ENSURE SPREADSHEET EXISTS ───
+function getOrCreateSpreadsheet() {
+  // Cek apakah sudah ada spreadsheet tersimpan
+  const props = PropertiesService.getScriptProperties();
+  let ssId = props.getProperty('SPREADSHEET_ID');
+
+  if (ssId) {
+    try {
+      return SpreadsheetApp.openById(ssId);
+    } catch (e) {
+      // Spreadsheet dihapus, buat baru
+    }
+  }
+
+  // Buat spreadsheet baru
+  const ss = SpreadsheetApp.create('MediaInteraktifDB');
+  ssId = ss.getId();
+  props.setProperty('SPREADSHEET_ID', ssId);
+
+  // Setup sheet awal
+  setupSheets(ss);
+  return ss;
+}
+
 function ensureSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getOrCreateSpreadsheet();
+  setupSheets(ss);
+  return ss;
+}
+
+function setupSheets(ss) {
   const names = ['users', 'content', 'progress'];
   names.forEach(name => {
-    if (!ss.getSheetByName(name)) {
-      const sheet = ss.insertSheet(name);
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
       if (name === 'users') {
         sheet.appendRow(['username', 'passwordHash', 'displayName', 'role', 'createdAt']);
-        // Default admin
         sheet.appendRow(['admin', hashPassword('admin123'), 'Administrator', 'admin', new Date().toISOString()]);
       }
       if (name === 'content') {
@@ -69,8 +97,10 @@ function ensureSheets() {
         sheet.appendRow(['username', 'progressJson', 'updatedAt']);
       }
     }
+    // Hapus sheet default "Sheet1" jika ada
+    const defaultSheet = ss.getSheetByName('Sheet1');
+    if (defaultSheet) ss.deleteSheet(defaultSheet);
   });
-  return ss;
 }
 
 // ─── SIMPLE HASH ───
