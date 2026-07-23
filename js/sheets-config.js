@@ -20,7 +20,7 @@ const SheetsDB = {
   /** Cek apakah Sheets dikonfigurasi */
   isConfigured() {
     const url = this.getUrl();
-    return url && !url.includes('YOUR_SCRIPT_ID');
+    return url && url.includes('script.google.com');
   },
 
   /** Panggil Apps Script API — POST form-urlencoded (no CORS preflight) */
