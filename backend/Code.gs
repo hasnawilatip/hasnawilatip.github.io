@@ -38,6 +38,9 @@ function handleRequest(e) {
       case 'saveProgress':   return response(saveProgress(data));
       case 'getAllProgress': return response(getAllProgress());
       case 'getAllUsers':    return response(getAllUsersData());
+      case 'addCredits':     return response(addCredits(data));
+      case 'unlockContent':  return response(unlockContent(data));
+      case 'getUser':        return response(getUserData(data.username));
       default: return response({ error: 'Unknown: ' + action });
     }
   } catch (err) {
@@ -63,8 +66,8 @@ function ensureSheets() {
     if (!sheet) {
       sheet = ss.insertSheet(name);
       if (name === 'users') {
-        sheet.appendRow(['username', 'passwordHash', 'displayName', 'role', 'createdAt']);
-        sheet.appendRow(['admin', hashPassword('admin123'), 'Administrator', 'admin', new Date().toISOString()]);
+        sheet.appendRow(['username', 'passwordHash', 'displayName', 'role', 'credits', 'unlocked', 'createdAt']);
+        sheet.appendRow(['admin', hashPassword('admin123'), 'Administrator', 'admin', '999', '[]', new Date().toISOString()]);
       }
       if (name === 'content') {
         sheet.appendRow(['subjectId', 'gradeKey', 'dataJson', 'updatedAt']);
@@ -99,7 +102,7 @@ function getUsers() {
   const users = {};
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    if (r[0]) users[r[0]] = { passwordHash: r[1], displayName: r[2], role: r[3], createdAt: r[4] };
+    if (r[0]) users[r[0]] = { passwordHash: r[1], displayName: r[2], role: r[3], credits: parseInt(r[4])||0, unlocked: safeJSON(r[5],[]), createdAt: r[6] };
   }
   return users;
 }
@@ -119,7 +122,78 @@ function getAllUsersData() {
 function registerUser(data) {
   const users = getUsers();
   const key = data.username.toLowerCase().trim();
-  // Biarkan overwrite jika user sudah ada (untuk development)
+  if (users[key]) {
+    const ss = ensureSheets();
+    const sheet = ss.getSheetByName('users');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0] === key) sheet.deleteRow(i + 1);
+    }
+  }
+  if (data.role === 'admin' && data.adminCode !== 'mtsadmin2026') return { error: 'Kode admin tidak valid.' };
+
+  const ss = ensureSheets();
+  const sheet = ss.getSheetByName('users');
+  const startCredits = data.role === 'admin' ? 999 : 5; // 5 kredit gratis
+  sheet.appendRow([key, hashPassword(data.password), data.displayName || key, data.role || 'siswa', startCredits, '[]', new Date().toISOString()]);
+  return { success: true, message: 'Registrasi berhasil! Dapat ' + startCredits + ' kredit gratis.' };
+}
+
+function getUserData(username) {
+  const users = getUsers();
+  const key = username.toLowerCase().trim();
+  const u = users[key];
+  if (!u) return { error: 'User tidak ditemukan' };
+  return { username: key, displayName: u.displayName, role: u.role, credits: u.credits, unlocked: u.unlocked };
+}
+
+function addCredits(data) {
+  const users = getUsers();
+  const key = data.username.toLowerCase().trim();
+  if (!users[key]) return { error: 'User tidak ditemukan' };
+  
+  const ss = ensureSheets();
+  const sheet = ss.getSheetByName('users');
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      const newCredits = (parseInt(rows[i][4]) || 0) + (parseInt(data.amount) || 0);
+      sheet.getRange(i + 1, 5).setValue(newCredits);
+      return { success: true, credits: newCredits, message: 'Kredit ditambahkan! Total: ' + newCredits };
+    }
+  }
+  return { error: 'Gagal update' };
+}
+
+function unlockContent(data) {
+  const users = getUsers();
+  const key = data.username.toLowerCase().trim();
+  const u = users[key];
+  if (!u) return { error: 'User tidak ditemukan' };
+  
+  const unlockKey = data.subjectId + '|' + data.gradeKey + '|' + data.chapterId;
+  if (u.unlocked.includes(unlockKey)) return { success: true, message: 'Sudah terbuka', alreadyUnlocked: true };
+  
+  const cost = parseInt(data.cost) || 1;
+  if (u.credits < cost) return { error: 'Kredit tidak cukup. Butuh ' + cost + ', punya ' + u.credits };
+  
+  const ss = ensureSheets();
+  const sheet = ss.getSheetByName('users');
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      sheet.getRange(i + 1, 5).setValue(u.credits - cost);
+      const newUnlocked = [...u.unlocked, unlockKey];
+      sheet.getRange(i + 1, 6).setValue(JSON.stringify(newUnlocked));
+      return { success: true, credits: u.credits - cost, message: 'Konten terbuka! Sisa kredit: ' + (u.credits - cost) };
+    }
+  }
+  return { error: 'Gagal unlock' };
+}
+
+function safeJSON(str, def) {
+  try { return JSON.parse(str); } catch(e) { return def; }
+}
   if (users[key]) {
     // Hapus baris lama dulu
     const ss = ensureSheets();
@@ -143,7 +217,7 @@ function loginUser(data) {
   const user = users[key];
   if (!user) return { error: 'Username tidak ditemukan.' };
   if (user.passwordHash !== hashPassword(data.password)) return { error: 'Password salah.' };
-  return { success: true, user: { username: key, displayName: user.displayName, role: user.role } };
+  return { success: true, user: { username: key, displayName: user.displayName, role: user.role, credits: user.credits, unlocked: user.unlocked } };
 }
 
 // ─── CONTENT ───

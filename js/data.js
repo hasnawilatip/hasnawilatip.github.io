@@ -197,7 +197,7 @@ const INFORMATIKA_DATA = {
         ]
       },
 
-      { id: 8, title: "Dampak Sosial Informatika", sem: 2,
+      { id: 8, title: "Dampak Sosial Informatika", sem: 2, premium: true, cost: 2,
         content: `<h3>A. Dampak Positif Teknologi</h3>
 <ul><li>Mempermudah komunikasi jarak jauh</li><li>Akses informasi tanpa batas</li><li>Meningkatkan efisiensi kerja dan belajar</li><li>Membuka peluang ekonomi digital</li><li>Mempercepat inovasi di berbagai bidang</li></ul>
 
@@ -213,7 +213,7 @@ const INFORMATIKA_DATA = {
         ]
       },
 
-      { id: 9, title: "Praktik Lintas Bidang", sem: 2,
+      { id: 9, title: "Praktik Lintas Bidang", sem: 2, premium: true, cost: 3,
         content: `<h3>A. Apa itu Praktik Lintas Bidang?</h3>
 <p>Praktik Lintas Bidang (PLB) adalah proyek yang menggabungkan beberapa bidang Informatika sekaligus. Siswa mengerjakan proyek nyata secara berkelompok.</p>
 

@@ -81,28 +81,43 @@ const Auth = {
     if (!this.isLoggedIn()) return null;
     try {
       const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY));
-      // Ambil role dari session langsung, fallback ke localStorage
       let role = session.role || 'siswa';
-      let displayName = session.username;
+      let displayName = session.displayName || session.username;
+      let credits = session.credits || 0;
+      let unlocked = session.unlocked || [];
 
-      // Coba dapatkan displayName dari localStorage
       try {
         const users = this._getUsers();
         const user = users[session.username];
         if (user) {
-          displayName = user.displayName || session.username;
+          displayName = user.displayName || displayName;
           role = user.role || role;
+          credits = user.credits || credits;
+          unlocked = user.unlocked || unlocked;
         }
       } catch(e) {}
 
-      return {
-        username: session.username,
-        displayName: displayName,
-        role: role,
-      };
-    } catch (e) {
-      return null;
-    }
+      return { username: session.username, displayName, role, credits, unlocked };
+    } catch (e) { return null; }
+  },
+
+  /** Cek apakah konten sudah di-unlock */
+  isUnlocked(subjectId, gradeKey, chapterId) {
+    const user = this.currentUser();
+    if (!user) return false;
+    if (user.role === 'admin') return true; // Admin selalu bisa akses
+    if (user.credits >= 999) return true; // Unlimited credits
+    const key = subjectId + '|' + gradeKey + '|' + chapterId;
+    return (user.unlocked || []).includes(key);
+  },
+
+  /** Simpan unlock state ke session */
+  saveUnlock(subjectId, gradeKey, chapterId) {
+    const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY) || '{}');
+    if (!session.unlocked) session.unlocked = [];
+    const key = subjectId + '|' + gradeKey + '|' + chapterId;
+    if (!session.unlocked.includes(key)) session.unlocked.push(key);
+    sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
   },
 
   /** Register user baru — via Sheets jika ada, fallback localStorage */
@@ -164,6 +179,8 @@ const Auth = {
           username: result.user.username,
           role: result.user.role || 'siswa',
           displayName: result.user.displayName,
+          credits: result.user.credits || 0,
+          unlocked: result.user.unlocked || [],
           loginAt: new Date().toISOString()
         }));
         return { success: true, message: 'Login berhasil!', user: result.user };

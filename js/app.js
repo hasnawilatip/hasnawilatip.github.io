@@ -191,14 +191,15 @@ const App = {
     }
   },
 
-  /** Update header: tampilkan nama user + role + admin button + tombol logout */
+  /** Update header: tampilkan nama user + role + credits + admin button + tombol logout */
   _updateHeader() {
     const user = Auth.currentUser();
     const userEl = document.getElementById('headerUser');
     const logoutEl = document.getElementById('btnLogout');
     if (user) {
       const roleIcon = user.role === 'admin' ? '🛡️' : user.role === 'guru' ? '👨‍🏫' : '🎒';
-      userEl.innerHTML = roleIcon + ' ' + user.displayName;
+      const creditInfo = user.role !== 'admin' ? ` · 💰${user.credits || 0}` : '';
+      userEl.innerHTML = roleIcon + ' ' + user.displayName + creditInfo;
       if (user.role === 'admin') {
         userEl.innerHTML += ' <button class="btn btn-sm btn-secondary" onclick="AdminDashboard.showDashboard()" style="margin-left:8px;font-size:0.7rem;padding:3px 10px;">🛡️ Admin</button>';
       }
@@ -454,6 +455,7 @@ const App = {
       case 'flowchart': FlowchartBuilder.init(); this.pushState({ view:'flowchart' }); break;
       case 'glossary': GlossaryEngine.init(); this.pushState({ view:'glossary' }); break;
       case 'progress': ProgressTracker.showDashboard(); this.pushState({ view:'progress' }); break;
+      case 'premium-lock': this._showPremiumLock(prev.subjectId, prev.grade || prev.gradeKey, prev.chapterId, {title:'...'}, 1); this.pushState({ view:'premium-lock' }); break;
       case 'about': this.showAbout(); break;
       case 'login': this.showLogin(); break;
       case 'register': this.showRegister(); break;
@@ -625,18 +627,88 @@ const App = {
     const colors = { k7: 'var(--blue)', k8: 'var(--green)', k9: 'var(--purple)' };
     const cls = gradeKey === 'k7' ? 'k7' : gradeKey === 'k8' ? 'k8' : 'k9';
     const icon = ch.sem === 1 ? '📗' : '📘';
+    const isPremium = ch.premium || false;
+    const unlocked = !isPremium || Auth.isUnlocked(subjectId, gradeKey, ch.id);
+    const lockIcon = isPremium && !unlocked ? ' 🔒' : '';
+    const costText = isPremium && !unlocked ? ` · 🪙${ch.cost || 1}` : '';
     return `
       <div class="chapter-card ${cls}" onclick="App.showChapter('${subjectId}','${gradeKey}',${ch.id})" style="border-left-color:${subj.color};">
         <div class="chapter-num" style="color:${subj.color};">${icon}<br>${ch.id}</div>
         <div>
-          <div class="chapter-title">${ch.title}</div>
-          <div class="chapter-meta">Semester ${ch.sem} · Kuis tersedia</div>
+          <div class="chapter-title">${ch.title}${lockIcon}</div>
+          <div class="chapter-meta">Semester ${ch.sem} · Kuis tersedia${costText}</div>
         </div>
       </div>
     `;
   },
 
-  // ─── CHAPTER CONTENT VIEW ───
+  /** Tampilkan halaman kunci premium */
+  _showPremiumLock(subjectId, gradeKey, chapterId, ch, cost) {
+    const user = Auth.currentUser();
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:500px;margin:40px auto;text-align:center;">
+        <div style="font-size:4rem;margin-bottom:16px;">🔒</div>
+        <h2 style="margin-bottom:8px;">Konten Premium</h2>
+        <p style="color:var(--gray-700);margin-bottom:20px;">
+          Bab <b>${ch.title}</b> memerlukan kredit untuk dibuka.
+        </p>
+        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);display:inline-block;margin-bottom:20px;">
+          <div style="font-size:2rem;font-weight:800;color:var(--orange);">🪙 ${cost}</div>
+          <div style="color:var(--gray-500);">Kredit diperlukan</div>
+          <div style="margin-top:12px;font-size:0.9rem;color:var(--gray-700);">
+            Kredit kamu: <b>💰 ${user.credits || 0}</b>
+          </div>
+        </div>
+        <br>
+        <button class="btn btn-primary btn-lg" onclick="App._unlockChapter('${subjectId}','${gradeKey}',${chapterId},${cost})" ${(user.credits || 0) < cost ? 'disabled' : ''}>
+          🔓 Buka dengan ${cost} Kredit
+        </button>
+        ${(user.credits || 0) < cost ? `<p style="color:var(--red);margin-top:8px;font-size:0.85rem;">Kredit tidak cukup. Hubungi admin untuk topup.</p>` : ''}
+        <div id="unlockMsg" style="margin-top:12px;"></div>
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="App.goBack()">← Kembali</button>
+        </div>
+      </div>
+    `;
+    App.pushState({ view: 'premium-lock', subjectId, gradeKey, chapterId });
+  },
+
+  /** Buka kunci konten premium */
+  async _unlockChapter(subjectId, gradeKey, chapterId, cost) {
+    const msgEl = document.getElementById('unlockMsg');
+    if (!msgEl) return;
+    msgEl.innerHTML = '<span style="color:var(--blue);">⏳ Membuka kunci...</span>';
+
+    const user = Auth.currentUser();
+    if (!user) return;
+
+    if (SheetsDB.isConfigured()) {
+      try {
+        const result = await SheetsDB._call('unlockContent', {
+          username: user.username, subjectId, gradeKey, chapterId, cost
+        });
+        if (result.success) {
+          Auth.saveUnlock(subjectId, gradeKey, chapterId);
+          // Update credits di session
+          const session = JSON.parse(sessionStorage.getItem('app_current_user') || '{}');
+          session.credits = result.credits;
+          sessionStorage.setItem('app_current_user', JSON.stringify(session));
+          msgEl.innerHTML = '<span style="color:var(--green);">✅ Terbuka! Mengarahkan...</span>';
+          setTimeout(() => App.showChapter(subjectId, gradeKey, chapterId), 800);
+        } else {
+          msgEl.innerHTML = '<span style="color:var(--red);">❌ ' + (result.error || 'Gagal') + '</span>';
+        }
+      } catch (e) {
+        msgEl.innerHTML = '<span style="color:var(--red);">❌ ' + e.message + '</span>';
+      }
+    } else {
+      // Fallback localStorage
+      Auth.saveUnlock(subjectId, gradeKey, chapterId);
+      msgEl.innerHTML = '<span style="color:var(--green);">✅ Terbuka! Mengarahkan...</span>';
+      setTimeout(() => App.showChapter(subjectId, gradeKey, chapterId), 800);
+    }
+  },
   showChapter(subjectId, gradeKey, chapterId) {
     this.currentSubject = subjectId;
     this.currentGrade = gradeKey;
@@ -644,6 +716,16 @@ const App = {
     const grade = data[gradeKey];
     const ch = grade.chapters.find(c => c.id === chapterId);
     if (!ch) return;
+
+    // Cek apakah konten premium & terkunci
+    const isPremium = ch.premium || false;
+    const cost = ch.cost || 1;
+    const unlocked = Auth.isUnlocked(subjectId, gradeKey, chapterId);
+
+    if (isPremium && !unlocked) {
+      this._showPremiumLock(subjectId, gradeKey, chapterId, ch, cost);
+      return;
+    }
 
     // Track progress
     ProgressTracker.markChapterRead(gradeKey, chapterId);
