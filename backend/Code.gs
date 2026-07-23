@@ -24,18 +24,9 @@ function doPost(e) {
 
 function handleRequest(e) {
   try {
-    // Baca parameter — bisa dari GET query string atau POST body
-    let action, data;
-    if (e.parameter.action) {
-      action = e.parameter.action;
-      data = e.parameter.data ? JSON.parse(e.parameter.data) : {};
-    } else if (e.postData && e.postData.contents) {
-      const body = JSON.parse(e.postData.contents);
-      action = body.action;
-      data = body.data || {};
-    } else {
-      return response({ error: 'No action specified' }, 400);
-    }
+    const action = e.parameter.action;
+    const data = e.parameter.data ? JSON.parse(e.parameter.data) : {};
+    if (!action) return response({ error: 'No action' });
 
     switch (action) {
       case 'getUsers':       return response(getUsers());
@@ -47,14 +38,14 @@ function handleRequest(e) {
       case 'saveProgress':   return response(saveProgress(data));
       case 'getAllProgress': return response(getAllProgress());
       case 'getAllUsers':    return response(getAllUsersData());
-      default: return response({ error: 'Unknown action: ' + action }, 400);
+      default: return response({ error: 'Unknown: ' + action });
     }
   } catch (err) {
-    return response({ error: err.message }, 500);
+    return response({ error: err.message });
   }
 }
 
-function response(data, code) {
+function response(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
