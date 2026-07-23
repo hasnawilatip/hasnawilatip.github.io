@@ -439,6 +439,7 @@ const App = {
       case 'admin': AdminDashboard.showDashboard(); break;
       case 'admin-content': AdminDashboard.showContentEditor(); break;
       case 'admin-ai': AdminDashboard.showAIGenerator(); break;
+      case 'admin-ai-batch': AdminDashboard.showAIBatchGenerate(); break;
       case 'admin-ai-settings': AdminDashboard.showAISettings(); break;
       case 'admin-edit-subject': AdminDashboard.editSubject(prev.subjectId); break;
       case 'admin-edit-chapter': AdminDashboard.editChapter(prev.subjectId, prev.gradeKey || prev.grade, prev.chapterId); break;

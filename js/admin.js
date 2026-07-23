@@ -424,11 +424,12 @@ const AdminDashboard = {
 
   // ─── HELPER FUNCTIONS ───
 
-  /** AI Generator Page */
+  /** AI Generator — main page: pilih mapel & kelas */
   showAIGenerator() {
     if (!this._checkAdmin()) return;
 
     const hasKey = AIAgent.hasKey();
+    const activeProv = AIAgent.PROVIDERS[AIAgent.getActiveProvider()];
     const subjects = SUBJECTS;
 
     const main = document.getElementById('mainContent');
@@ -436,50 +437,43 @@ const AdminDashboard = {
       <div class="fade-in" style="max-width:750px;margin:0 auto;">
         <div class="section-header">
           <h2>🤖 AI Generator Konten</h2>
-          <p style="color:var(--gray-700);">Generate materi & soal otomatis dengan DeepSeek AI</p>
+          <p style="color:var(--gray-700);">Generate materi & soal otomatis per bab — pilih mapel, kelas, lalu ceklis bab & tipe konten</p>
         </div>
 
         ${!hasKey ? `
         <div class="info-box" style="background:var(--orange-light);border-left-color:var(--orange);margin-bottom:16px;">
           <span class="info-title">⚠️ API Key belum diatur!</span>
-          <p>Masukkan DeepSeek API Key terlebih dahulu. 
-          <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);font-weight:600;">Klik di sini untuk Setting API Key</a></p>
+          <p>Masukkan API Key dulu. <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);font-weight:600;">Setting API Key</a></p>
         </div>` : `
         <div class="info-box" style="background:var(--green-light);border-left-color:var(--green);margin-bottom:16px;">
-          <span class="info-title">✅ API Key siap</span> · 
-          <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);">Ganti API Key</a>
+          <span class="info-title">✅ ${activeProv.name} siap</span> · <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);">Ganti AI / API Key</a>
         </div>`}
 
-        <div class="chapter-grid">
-          <div class="chapter-card k7" onclick="AdminDashboard.showAIGenerate('material')">
-            <div class="chapter-num">📖</div>
-            <div><div class="chapter-title">Generate Materi</div>
-            <div class="chapter-meta">Buat materi pembelajaran per bab (HTML)</div></div>
+        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <label style="display:block;font-weight:600;margin-bottom:6px;">📚 Mata Pelajaran</label>
+          <select id="aiSubject" class="fill-input" style="text-align:left;margin-bottom:16px;">
+            ${subjects.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}
+          </select>
+
+          <label style="display:block;font-weight:600;margin-bottom:6px;">🏫 Kelas</label>
+          <div style="display:flex;gap:10px;margin-bottom:20px;">
+            <label class="role-label" style="cursor:pointer;">
+              <input type="radio" name="aiGradeMain" value="k7" checked style="accent-color:var(--blue);"> 📗 Kelas 7
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="radio" name="aiGradeMain" value="k8" style="accent-color:var(--green);"> 📘 Kelas 8
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="radio" name="aiGradeMain" value="k9" style="accent-color:var(--purple);"> 📙 Kelas 9
+            </label>
           </div>
-          <div class="chapter-card k8" onclick="AdminDashboard.showAIGenerate('quiz')">
-            <div class="chapter-num">📝</div>
-            <div><div class="chapter-title">Generate Soal Kuis</div>
-            <div class="chapter-meta">Soal pilihan ganda + jawaban</div></div>
-          </div>
-          <div class="chapter-card k9" onclick="AdminDashboard.showAIGenerate('fillblank')">
-            <div class="chapter-num">✍️</div>
-            <div><div class="chapter-title">Generate Isian Singkat</div>
-            <div class="chapter-meta">Soal isian dengan kunci jawaban</div></div>
-          </div>
-          <div class="chapter-card k7" onclick="AdminDashboard.showAIGenerate('truefalse')">
-            <div class="chapter-num">✅</div>
-            <div><div class="chapter-title">Generate Benar/Salah</div>
-            <div class="chapter-meta">Pernyataan benar & salah</div></div>
-          </div>
-          <div class="chapter-card k8" onclick="AdminDashboard.showAIGenerate('flashcards')">
-            <div class="chapter-num">🃏</div>
-            <div><div class="chapter-title">Generate Flashcards</div>
-            <div class="chapter-meta">Kartu istilah & definisi</div></div>
-          </div>
+
+          <button class="btn btn-primary" onclick="AdminDashboard.showAIBatchGenerate()" style="width:100%;">👉 Pilih Bab & Tipe Konten</button>
         </div>
 
         <div class="flex-center mt-3">
-          <button class="btn btn-secondary" onclick="AdminDashboard.showDashboard()">🛡️ Dashboard</button>
+          <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAISettings()">⚙️ AI Settings</button>
+          <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showDashboard()">🛡️ Dashboard</button>
         </div>
       </div>
     `;
@@ -594,8 +588,264 @@ const AdminDashboard = {
     }
   },
 
-  /** Form Generate Konten */
-  showAIGenerate(type) {
+  /** Batch Generate — pilih bab & tipe konten, lalu generate semua */
+  showAIBatchGenerate() {
+    if (!this._checkAdmin()) return;
+
+    const subjectId = document.getElementById('aiSubject')?.value || SUBJECTS[0].id;
+    const gradeEl = document.querySelector('input[name="aiGradeMain"]:checked');
+    const gradeKey = gradeEl ? gradeEl.value : 'k7';
+    const info = App._getSubjectInfo(subjectId);
+    const data = App._getData(subjectId);
+    const grade = data[gradeKey];
+    const gradeLabel = gradeKey === 'k7' ? '7' : gradeKey === 'k8' ? '8' : '9';
+    const chapters = grade?.chapters || [];
+
+    const sem1 = chapters.filter(c => c.sem === 1);
+    const sem2 = chapters.filter(c => c.sem === 2);
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:750px;margin:0 auto;">
+        <div class="section-header">
+          <h2>📋 Pilih Bab & Konten</h2>
+          <p style="color:var(--gray-700);">${info.icon} ${info.name} · ${grade?.name || 'Kelas ' + gradeLabel}</p>
+        </div>
+
+        <!-- Tipe konten -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">📦 Tipe Konten yang akan di-generate:</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <label class="role-label" style="cursor:pointer;">
+              <input type="checkbox" class="aiContentType" value="material" checked> 📖 Materi
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="checkbox" class="aiContentType" value="quiz" checked> 📝 Kuis PG
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="checkbox" class="aiContentType" value="fillblank"> ✍️ Isian
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="checkbox" class="aiContentType" value="truefalse"> ✅ B/S
+            </label>
+            <label class="role-label" style="cursor:pointer;">
+              <input type="checkbox" class="aiContentType" value="flashcards"> 🃏 Flashcard
+            </label>
+          </div>
+          <div style="margin-top:10px;font-size:0.75rem;color:var(--gray-500);">
+            ⚠️ Generate banyak bab + banyak tipe = proses lebih lama
+          </div>
+        </div>
+
+        <!-- Bab list -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4>📚 Pilih Bab</h4>
+            <span style="font-size:0.8rem;">
+              <a href="#" onclick="AdminDashboard._toggleAllChapters(true)" style="color:var(--blue);">Pilih Semua</a> ·
+              <a href="#" onclick="AdminDashboard._toggleAllChapters(false)" style="color:var(--gray-500);">Batal</a>
+            </span>
+          </div>
+
+          ${sem1.length > 0 ? `<h5 style="color:var(--blue);margin:12px 0 8px;">📗 Semester 1</h5>` : ''}
+          ${sem1.map(ch => this._chapterCheckbox(ch, info)).join('')}
+
+          ${sem2.length > 0 ? `<h5 style="color:var(--green);margin:12px 0 8px;">📘 Semester 2</h5>` : ''}
+          ${sem2.map(ch => this._chapterCheckbox(ch, info)).join('')}
+
+          ${chapters.length === 0 ? '<p style="color:var(--gray-500);text-align:center;padding:20px;">Belum ada data bab untuk mapel ini. Gunakan <b>Topik Kustom</b> di bawah.</p>' : ''}
+        </div>
+
+        <!-- Topik kustom -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:8px;">📝 Topik Kustom (tambahan)</h4>
+          <textarea id="aiCustomTopics" class="fill-input" placeholder="Tulis topik tambahan, satu per baris. Contoh:&#10;Surah Al-Fatihah dan Tafsirnya&#10;Hukum Bacaan Mad Thabi'i" style="height:80px;text-align:left;margin-bottom:8px;"></textarea>
+          <span style="font-size:0.75rem;color:var(--gray-500);">Topik ini akan digenerate sebagai bab tambahan</span>
+        </div>
+
+        <button class="btn btn-primary" onclick="AdminDashboard._doBatchGenerate('${subjectId}','${gradeKey}')" style="width:100%;padding:14px;font-size:1rem;">🚀 Generate Semua yang Dicentang</button>
+        <div id="aiBatchProgress" style="margin-top:16px;"></div>
+
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="AdminDashboard.showAIGenerator()">⬅ Kembali Pilih Mapel</button>
+        </div>
+      </div>
+    `;
+    App.pushState({ view: 'admin-ai-batch', subjectId, gradeKey });
+  },
+
+  _chapterCheckbox(ch, info) {
+    return `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:4px;background:var(--gray-50);border-radius:var(--radius-sm);cursor:pointer;border-left:4px solid ${info.color};">
+        <input type="checkbox" class="aiChapterCb" value="${ch.id}|${this._escAttr(ch.title)}" checked>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.9rem;">Bab ${ch.id}: ${ch.title}</div>
+          <div style="font-size:0.7rem;color:var(--gray-500);">Semester ${ch.sem}</div>
+        </div>
+      </label>`;
+  },
+
+  _toggleAllChapters(on) {
+    document.querySelectorAll('.aiChapterCb').forEach(cb => { cb.checked = on; });
+  },
+
+  /** Proses batch generate */
+  async _doBatchGenerate(subjectId, gradeKey) {
+    const info = App._getSubjectInfo(subjectId);
+    const gradeLabel = gradeKey === 'k7' ? '7' : gradeKey === 'k8' ? '8' : '9';
+
+    // Kumpulkan bab yang dicentang
+    const checkedChapters = [];
+    document.querySelectorAll('.aiChapterCb:checked').forEach(cb => {
+      const [id, title] = cb.value.split('|');
+      checkedChapters.push({ id: parseInt(id), title });
+    });
+
+    // Kumpulkan tipe konten yang dicentang
+    const checkedTypes = [];
+    document.querySelectorAll('.aiContentType:checked').forEach(cb => {
+      checkedTypes.push(cb.value);
+    });
+
+    // Topik kustom
+    const customTopicsRaw = document.getElementById('aiCustomTopics')?.value?.trim() || '';
+    const customTopics = customTopicsRaw ? customTopicsRaw.split('\n').filter(t => t.trim()) : [];
+
+    const totalTasks = (checkedChapters.length + customTopics.length) * checkedTypes.length;
+    if (totalTasks === 0) {
+      alert('Centang minimal 1 bab dan 1 tipe konten.');
+      return;
+    }
+
+    if (!confirm(`Akan generate ${totalTasks} item (${checkedChapters.length + customTopics.length} topik × ${checkedTypes.length} tipe). Lanjutkan?`)) return;
+
+    const progressEl = document.getElementById('aiBatchProgress');
+    progressEl.innerHTML = `
+      <div style="background:var(--blue-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+        <b>⏳ Sedang generate...</b>
+        <div id="batchStatus" style="margin-top:8px;font-size:0.85rem;color:var(--gray-700);">Persiapan...</div>
+        <div style="background:var(--gray-200);height:6px;border-radius:3px;margin-top:8px;overflow:hidden;">
+          <div id="batchBar" style="height:100%;background:var(--blue);width:0%;transition:width 0.3s;"></div>
+        </div>
+      </div>
+    `;
+
+    let completed = 0;
+    const errors = [];
+    const generatedContent = {}; // { chapterId: { material, quiz, ... } }
+
+    const updateProgress = (msg) => {
+      const pct = Math.round((completed / totalTasks) * 100);
+      document.getElementById('batchStatus').textContent = msg;
+      document.getElementById('batchBar').style.width = pct + '%';
+    };
+
+    const allTopics = [
+      ...checkedChapters.map(ch => ({ id: ch.id, title: ch.title, isCustom: false })),
+      ...customTopics.map((t, i) => ({ id: 999 + i, title: t, isCustom: true }))
+    ];
+
+    for (const topic of allTopics) {
+      if (!generatedContent[topic.id]) generatedContent[topic.id] = {};
+
+      for (const type of checkedTypes) {
+        const label = type === 'material' ? 'Materi' : type === 'quiz' ? 'Kuis' : type === 'fillblank' ? 'Isian' : type === 'truefalse' ? 'B/S' : 'Flashcard';
+        updateProgress(`Bab ${topic.id}: ${topic.title} → ${label}...`);
+
+        try {
+          let result;
+          switch (type) {
+            case 'material':
+              result = await AIAgent.generateMaterial(info.name, gradeLabel, topic.title, topic.id);
+              generatedContent[topic.id].material = result;
+              break;
+            case 'quiz':
+              result = await AIAgent.generateQuiz(info.name, gradeLabel, topic.title, 5);
+              generatedContent[topic.id].quiz = result;
+              break;
+            case 'fillblank':
+              result = await AIAgent.generateFillBlank(info.name, gradeLabel, topic.title, 5);
+              generatedContent[topic.id].fillBlank = { questions: result, title: topic.title };
+              break;
+            case 'truefalse':
+              result = await AIAgent.generateTrueFalse(info.name, gradeLabel, topic.title, 10);
+              generatedContent[topic.id].trueFalse = { questions: result, title: topic.title };
+              break;
+            case 'flashcards':
+              result = await AIAgent.generateFlashcards(info.name, gradeLabel, topic.title, 8);
+              generatedContent[topic.id].flashcards = { cards: result, title: topic.title };
+              break;
+          }
+        } catch (err) {
+          errors.push(`${topic.title} (${label}): ${err.message}`);
+        }
+        completed++;
+      }
+    }
+
+    updateProgress('✅ Selesai!');
+    this._saveBatchResults(subjectId, gradeKey, generatedContent, allTopics);
+
+    // Tampilkan hasil
+    let resultHtml = `<div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+      <b style="color:var(--green);">✅ ${completed} item berhasil digenerate!</b>`;
+    if (errors.length > 0) {
+      resultHtml += `<div style="margin-top:8px;color:var(--red);font-size:0.85rem;"><b>⚠️ ${errors.length} error:</b><br>${errors.map(e => '· ' + e).join('<br>')}</div>`;
+    }
+    resultHtml += `
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-success btn-sm" onclick="alert('Semua konten sudah otomatis tersimpan!');AdminDashboard.showContentEditor();">📝 Lihat di Editor Konten</button>
+        <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAIBatchGenerate()">🔄 Generate Ulang</button>
+      </div>
+    </div>`;
+    progressEl.innerHTML += resultHtml;
+  },
+
+  /** Simpan hasil batch generate ke overrides */
+  _saveBatchResults(subjectId, gradeKey, generatedContent, allTopics) {
+    const overrides = this.loadOverrides();
+    if (!overrides[subjectId]) overrides[subjectId] = {};
+    if (!overrides[subjectId][gradeKey]) {
+      overrides[subjectId][gradeKey] = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey]));
+    }
+    if (!overrides[subjectId][gradeKey].chapters) {
+      overrides[subjectId][gradeKey].chapters = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey].chapters));
+    }
+
+    for (const topic of allTopics) {
+      const gen = generatedContent[topic.id];
+      if (!gen) continue;
+
+      let ch = overrides[subjectId][gradeKey].chapters.find(c => c.id === topic.id);
+      if (!ch) {
+        ch = {
+          id: topic.id,
+          title: topic.title,
+          sem: topic.id <= 5 ? 1 : 2,
+          content: '',
+          quiz: []
+        };
+        overrides[subjectId][gradeKey].chapters.push(ch);
+      }
+
+      if (gen.material) ch.content = gen.material;
+      if (gen.quiz) ch.quiz = gen.quiz;
+      if (gen.fillBlank) {
+        if (!overrides[subjectId].fillBlank) overrides[subjectId].fillBlank = {};
+        if (!overrides[subjectId].fillBlank[gradeKey]) overrides[subjectId].fillBlank[gradeKey] = gen.fillBlank;
+      }
+      if (gen.trueFalse) {
+        if (!overrides[subjectId].trueFalse) overrides[subjectId].trueFalse = {};
+        if (!overrides[subjectId].trueFalse[gradeKey]) overrides[subjectId].trueFalse[gradeKey] = gen.trueFalse;
+      }
+      if (gen.flashcards) {
+        if (!overrides[subjectId].flashcards) overrides[subjectId].flashcards = {};
+        if (!overrides[subjectId].flashcards[gradeKey]) overrides[subjectId].flashcards[gradeKey] = gen.flashcards;
+      }
+    }
+
+    this.saveOverrides(overrides);
+  },
     if (!this._checkAdmin()) return;
 
     const subjects = SUBJECTS;
