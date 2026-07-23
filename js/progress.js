@@ -5,9 +5,15 @@
 const ProgressTracker = {
   STORAGE_KEY: 'informatika_progress',
 
+  /** Dapatkan storage key per-user (fallback ke default jika belum login) */
+  _getKey() {
+    const user = Auth.currentUser();
+    return user ? `${this.STORAGE_KEY}_${user.username}` : this.STORAGE_KEY;
+  },
+
   _load() {
     try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
+      const raw = localStorage.getItem(this._getKey());
       return raw ? JSON.parse(raw) : this._defaultData();
     } catch (e) {
       return this._defaultData();
@@ -15,7 +21,7 @@ const ProgressTracker = {
   },
 
   _save(data) {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(this._getKey(), JSON.stringify(data));
   },
 
   _defaultData() {

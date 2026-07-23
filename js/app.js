@@ -10,10 +10,166 @@ const App = {
 
   init() {
     this.history = [];
-    this.showHome();
     document.getElementById('btnBack').addEventListener('click', () => this.goBack());
     document.getElementById('btnHome').addEventListener('click', () => this.showHome());
+    document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
     DarkMode.init();
+
+    // Cek login — jika sudah login, langsung ke home
+    if (Auth.isLoggedIn()) {
+      this._updateHeader();
+      this.showHome();
+    } else {
+      this.showLogin();
+    }
+  },
+
+  /** Update header: tampilkan nama user + tombol logout */
+  _updateHeader() {
+    const user = Auth.currentUser();
+    const userEl = document.getElementById('headerUser');
+    const logoutEl = document.getElementById('btnLogout');
+    if (user) {
+      userEl.textContent = '👤 ' + user.displayName;
+      userEl.style.display = 'inline';
+      logoutEl.style.display = 'inline-block';
+    } else {
+      userEl.style.display = 'none';
+      logoutEl.style.display = 'none';
+    }
+  },
+
+  /** Logout */
+  _doLogout() {
+    if (confirm('Apakah Anda yakin ingin keluar?')) {
+      Auth.logout();
+      this.history = [];
+      document.getElementById('btnBack').style.display = 'none';
+      document.getElementById('btnHome').style.display = 'none';
+      document.getElementById('headerUser').style.display = 'none';
+      document.getElementById('btnLogout').style.display = 'none';
+      this.showLogin();
+    }
+  },
+
+  /** Halaman Login */
+  showLogin() {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:420px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:3rem;margin-bottom:8px;">🖥️</div>
+          <h2 style="margin-bottom:4px;">Media Interaktif MTs</h2>
+          <p style="color:var(--gray-500);">Masuk untuk melanjutkan belajar</p>
+        </div>
+
+        <div id="authMsg" style="text-align:center;margin-bottom:12px;"></div>
+
+        <form id="loginForm" onsubmit="return false;" style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Username</label>
+          <input type="text" id="loginUser" class="fill-input" placeholder="Username" autocomplete="username" style="margin-bottom:14px;text-align:left;">
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Password</label>
+          <input type="password" id="loginPass" class="fill-input" placeholder="Password" autocomplete="current-password" style="margin-bottom:20px;text-align:left;">
+
+          <button type="submit" class="btn btn-primary" style="width:100%;" onclick="App._handleLogin()">🔑 Masuk</button>
+        </form>
+
+        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--gray-500);">
+          Belum punya akun?
+          <a href="#" onclick="App.showRegister();return false;" style="color:var(--blue);font-weight:600;">Daftar di sini</a>
+        </p>
+      </div>
+    `;
+
+    document.getElementById('btnBack').style.display = 'none';
+    document.getElementById('btnHome').style.display = 'none';
+    document.getElementById('headerUser').style.display = 'none';
+    document.getElementById('btnLogout').style.display = 'none';
+
+    // Enter key
+    document.getElementById('loginPass').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._handleLogin();
+    });
+
+    this.history = [];
+    this.pushState({ view: 'login' });
+  },
+
+  /** Handle login submit */
+  _handleLogin() {
+    const username = document.getElementById('loginUser').value;
+    const password = document.getElementById('loginPass').value;
+    const msgEl = document.getElementById('authMsg');
+
+    const result = Auth.login(username, password);
+    if (result.success) {
+      msgEl.innerHTML = '';
+      this._updateHeader();
+      this.showHome();
+    } else {
+      msgEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);"><b>Gagal:</b> ${result.message}</div>`;
+    }
+  },
+
+  /** Halaman Register */
+  showRegister() {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:420px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:3rem;margin-bottom:8px;">📝</div>
+          <h2 style="margin-bottom:4px;">Daftar Akun Baru</h2>
+          <p style="color:var(--gray-500);">Buat akun untuk menyimpan progres belajar</p>
+        </div>
+
+        <div id="authMsg" style="text-align:center;margin-bottom:12px;"></div>
+
+        <form id="regForm" onsubmit="return false;" style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Nama Lengkap</label>
+          <input type="text" id="regName" class="fill-input" placeholder="Contoh: Ahmad" autocomplete="name" style="margin-bottom:14px;text-align:left;">
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Username</label>
+          <input type="text" id="regUser" class="fill-input" placeholder="Min. 3 karakter" autocomplete="username" style="margin-bottom:14px;text-align:left;">
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Password</label>
+          <input type="password" id="regPass" class="fill-input" placeholder="Min. 4 karakter" autocomplete="new-password" style="margin-bottom:20px;text-align:left;">
+
+          <button type="submit" class="btn btn-success" style="width:100%;" onclick="App._handleRegister()">✅ Daftar</button>
+        </form>
+
+        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--gray-500);">
+          Sudah punya akun?
+          <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a>
+        </p>
+      </div>
+    `;
+
+    document.getElementById('btnBack').style.display = 'none';
+    document.getElementById('btnHome').style.display = 'none';
+
+    document.getElementById('regPass').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._handleRegister();
+    });
+
+    this.pushState({ view: 'register' });
+  },
+
+  /** Handle register submit */
+  _handleRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const username = document.getElementById('regUser').value;
+    const password = document.getElementById('regPass').value;
+    const msgEl = document.getElementById('authMsg');
+
+    const result = Auth.register(username, password, name);
+    if (result.success) {
+      msgEl.innerHTML = `<div class="info-box" style="background:var(--green-light);border-left-color:var(--green);"><b>Berhasil!</b> ${result.message}</div>`;
+      // Auto-redirect ke login setelah 1.5 detik
+      setTimeout(() => this.showLogin(), 1500);
+    } else {
+      msgEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);"><b>Gagal:</b> ${result.message}</div>`;
+    }
   },
 
   // ─── HELPER ───
@@ -68,6 +224,8 @@ const App = {
       case 'glossary': GlossaryEngine.init(); this.pushState({ view:'glossary' }); break;
       case 'progress': ProgressTracker.showDashboard(); this.pushState({ view:'progress' }); break;
       case 'about': this.showAbout(); break;
+      case 'login': this.showLogin(); break;
+      case 'register': this.showRegister(); break;
       case 'allfeatures': this.showAllFeatures(); break;
       case 'quickpick': this.showAllFeatures(); break;
       case 'launchpick': this.showAllFeatures(); break;
@@ -80,6 +238,7 @@ const App = {
 
   // ─── HOME — Pilih Mata Pelajaran ───
   showHome() {
+    this._updateHeader();
     this.currentSubject = null;
     this.currentGrade = null;
     const main = document.getElementById('mainContent');
