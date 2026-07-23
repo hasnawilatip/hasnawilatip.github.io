@@ -1,173 +1,157 @@
 /* ══════════════════════════════════════════════════════════
-   AI AGENT — Generate Konten Pembelajaran via DeepSeek API
-   Endpoint: api.deepseek.com (OpenAI-compatible)
+   AI AGENT — Multi-Provider AI untuk Generate Konten
+   Support: DeepSeek, OpenAI, Google Gemini
    ══════════════════════════════════════════════════════════ */
 
 const AIAgent = {
-  API_KEY_STORAGE: 'admin_deepseek_key',
-  MODEL: 'deepseek-chat',
-  BASE_URL: 'https://api.deepseek.com/v1/chat/completions',
+  SETTINGS_KEY: 'admin_ai_settings',
 
-  /** Simpan API Key */
-  setApiKey(key) {
-    localStorage.setItem(this.API_KEY_STORAGE, key.trim());
+  PROVIDERS: {
+    deepseek: {
+      name: 'DeepSeek', icon: '🔍',
+      baseURL: 'https://api.deepseek.com/v1/chat/completions',
+      model: 'deepseek-chat',
+      models: ['deepseek-chat', 'deepseek-reasoner'],
+      authHeader: (key) => ({ 'Authorization': `Bearer ${key}` }),
+      parseResponse: (data) => data.choices?.[0]?.message?.content,
+      parseError: (data) => data.error?.message,
+      getApiLink: 'https://platform.deepseek.com/api_keys'
+    },
+    openai: {
+      name: 'OpenAI', icon: '🧠',
+      baseURL: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-4o-mini',
+      models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+      authHeader: (key) => ({ 'Authorization': `Bearer ${key}` }),
+      parseResponse: (data) => data.choices?.[0]?.message?.content,
+      parseError: (data) => data.error?.message,
+      getApiLink: 'https://platform.openai.com/api-keys'
+    },
+    gemini: {
+      name: 'Google Gemini', icon: '🌐',
+      model: 'gemini-2.0-flash',
+      models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+      authHeader: () => null,
+      parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text,
+      parseError: (data) => data.error?.message,
+      getApiLink: 'https://aistudio.google.com/apikey',
+      _isGemini: true
+    }
   },
 
-  /** Ambil API Key */
-  getApiKey() {
-    return localStorage.getItem(this.API_KEY_STORAGE) || '';
+  _loadSettings() {
+    try { return JSON.parse(localStorage.getItem(this.SETTINGS_KEY)) || {}; }
+    catch (e) { return {}; }
   },
 
-  /** Cek apakah API key sudah di-set */
-  hasKey() {
-    return !!this.getApiKey();
-  },
+  _saveSettings(s) { localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(s)); },
 
-  /** Panggil DeepSeek API */
-  async _callDeepSeek(systemPrompt, userPrompt) {
-    const apiKey = this.getApiKey();
-    if (!apiKey) throw new Error('API Key belum diatur. Masukkan DeepSeek API Key di Settings.');
+  getActiveProvider() { return this._loadSettings().activeProvider || 'deepseek'; },
+  setActiveProvider(id) { const s = this._loadSettings(); s.activeProvider = id; this._saveSettings(s); },
 
-    const response = await fetch(this.BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: this.MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096
-      })
-    });
+  getApiKey(providerId) { const s = this._loadSettings(); return (s.keys && s.keys[providerId]) || ''; },
+  setApiKey(providerId, key) { const s = this._loadSettings(); if (!s.keys) s.keys = {}; s.keys[providerId] = key.trim(); this._saveSettings(s); },
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${response.status}: Gagal generate konten.`);
+  getModel(providerId) { const s = this._loadSettings(); const p = this.PROVIDERS[providerId]; return (s.models && s.models[providerId]) || p?.model || ''; },
+  setModel(providerId, model) { const s = this._loadSettings(); if (!s.models) s.models = {}; s.models[providerId] = model; this._saveSettings(s); },
+
+  hasKey() { return !!this.getApiKey(this.getActiveProvider()); },
+  resetAll() { localStorage.removeItem(this.SETTINGS_KEY); },
+
+  async _callAPI(systemPrompt, userPrompt) {
+    const pid = this.getActiveProvider();
+    const p = this.PROVIDERS[pid];
+    if (!p) throw new Error('Provider tidak dikenal.');
+    const apiKey = this.getApiKey(pid);
+    if (!apiKey) throw new Error(`API Key ${p.name} belum diatur.`);
+    const model = this.getModel(pid);
+
+    if (p._isGemini) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const r = await fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 4096 } })
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(p.parseError(e) || `HTTP ${r.status}`); }
+      const d = await r.json(); const t = p.parseResponse(d);
+      if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`); return t;
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) throw new Error('AI tidak menghasilkan konten. Coba lagi.');
-    return text;
+    const r = await fetch(p.baseURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...p.authHeader(apiKey) },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.7, max_tokens: 4096 })
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(p.parseError(e) || `HTTP ${r.status}`); }
+    const d = await r.json(); const t = p.parseResponse(d);
+    if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`); return t;
   },
 
-  /** Test koneksi API — kirim prompt sederhana */
   async testConnection() {
-    const result = await this._callDeepSeek(
-      'Kamu adalah asisten yang ramah. Jawab singkat dalam bahasa Indonesia.',
-      'Balas: "✅ Koneksi DeepSeek API berhasil! Siap generate konten."'
+    const pid = this.getActiveProvider();
+    const p = this.PROVIDERS[pid];
+    return await this._callAPI(
+      'Kamu asisten ramah. Jawab singkat bahasa Indonesia.',
+      `Balas: "✅ Koneksi ${p.name} API berhasil! Siap generate konten."`
     );
-    return result;
   },
+
   async generateMaterial(subjectName, gradeLabel, chapterTitle, chapterNum) {
-    const systemPrompt = `Kamu adalah asisten guru profesional untuk SMP/MTs Kurikulum Merdeka di Indonesia. Buat materi pembelajaran yang LENGKAP, mendalam, dan sesuai tingkat SMP/MTs.`;
+    return await this._callAPI(
+      `Kamu asisten guru SMP/MTs Kurikulum Merdeka. Buat materi LENGKAP, mendalam, sesuai tingkat SMP/MTs.`,
+      `Buat MATERI PEMBELAJARAN "${subjectName}" kelas ${gradeLabel}, Bab ${chapterNum}: "${chapterTitle}".
 
-    const userPrompt = `Buatkan MATERI PEMBELAJARAN untuk mata pelajaran "${subjectName}" kelas ${gradeLabel}, Bab ${chapterNum}: "${chapterTitle}".
-
-Format output HARUS dalam HTML (tanpa <!DOCTYPE>, <html>, <head>, <body>), langsung konten:
-- Gunakan <h3> untuk sub-judul
-- Gunakan <p> untuk paragraf penjelasan
-- Gunakan <ul><li> untuk poin-poin penting
-- Gunakan <b> untuk istilah penting
-- Gunakan <div class="info-box"><span class="info-title">ℹ️ Info:</span> ...</div> untuk info tambahan
-- Gunakan <div class="activity-box"><span class="activity-title">✏️ Aktivitas:</span> ...</div> untuk aktivitas siswa
-- Materi harus LENGKAP, mendalam, dan sesuai tingkat SMP/MTs
-- Panjang: minimal 500 kata
-- Bahasa Indonesia yang baik dan benar
-- Sesuaikan dengan Kurikulum Merdeka Fase D`;
-
-    return await this._callDeepSeek(systemPrompt, userPrompt);
+Format output HARUS HTML langsung (tanpa <!DOCTYPE>, <html>, <head>, <body>):
+- <h3> sub-judul
+- <p> paragraf
+- <ul><li> poin penting
+- <b> istilah penting
+- <div class="info-box"><span class="info-title">ℹ️ Info:</span> ...</div> info tambahan
+- <div class="activity-box"><span class="activity-title">✏️ Aktivitas:</span> ...</div> aktivitas
+- Minimal 500 kata, Bahasa Indonesia baik, Kurikulum Merdeka Fase D`
+    );
   },
 
-  /** Generate soal kuis pilihan ganda */
   async generateQuiz(subjectName, gradeLabel, chapterTitle, count = 5) {
-    const systemPrompt = `Kamu adalah asisten guru untuk SMP/MTs Kurikulum Merdeka di Indonesia. Output HARUS berupa JSON array valid tanpa teks lain.`;
-
-    const userPrompt = `Buatkan ${count} SOAL PILIHAN GANDA untuk mata pelajaran "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
-
-Output HARUS dalam format JSON array saja (tanpa markdown, tanpa komentar). Setiap soal adalah object:
-{
-  "q": "teks soal",
-  "opts": ["A", "B", "C", "D"],
-  "ans": 0  // index jawaban benar (0-3)
-}
-
-Pastikan:
-- Soal sesuai tingkat SMP/MTs
-- Variasi tingkat kesulitan
-- Jawaban benar tersebar merata
-- JSON valid`;
-
-    const result = await this._callDeepSeek(systemPrompt, userPrompt);
-    const cleaned = result.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('AI menghasilkan format tidak valid. Coba generate ulang.');
-    const quiz = JSON.parse(match[0]);
-    if (!Array.isArray(quiz)) throw new Error('Format bukan array');
-    return quiz;
+    const r = await this._callAPI(
+      `Output HARUS JSON array valid tanpa teks lain.`,
+      `${count} SOAL PILIHAN GANDA "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
+JSON: [{"q":"soal","opts":["A","B","C","D"],"ans":0}]
+Variasi kesulitan, jawaban tersebar.`
+    );
+    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    const m = c.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('Format tidak valid. Coba ulang.');
+    return JSON.parse(m[0]);
   },
 
-  /** Generate soal isian singkat */
   async generateFillBlank(subjectName, gradeLabel, chapterTitle, count = 5) {
-    const systemPrompt = `Kamu adalah asisten guru untuk SMP/MTs. Output HARUS berupa JSON array valid tanpa teks lain.`;
-
-    const userPrompt = `Buatkan ${count} SOAL ISIAN SINGKAT untuk "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
-
-Output JSON array saja. Format tiap soal:
-{
-  "q": "teks soal dengan ___ untuk bagian isian",
-  "answers": ["jawaban1", "jawaban2"]
-}`;
-
-    const result = await this._callDeepSeek(systemPrompt, userPrompt);
-    const cleaned = result.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('Format tidak valid.');
-    return JSON.parse(match[0]);
+    const r = await this._callAPI(
+      `Output HARUS JSON array valid.`,
+      `${count} SOAL ISIAN SINGKAT "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
+JSON: [{"q":"soal dengan ___","answers":["jwb1","jwb2"]}]`
+    );
+    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
   },
 
-  /** Generate soal benar/salah */
   async generateTrueFalse(subjectName, gradeLabel, chapterTitle, count = 10) {
-    const systemPrompt = `Kamu adalah asisten guru untuk SMP/MTs. Output HARUS berupa JSON array valid tanpa teks lain.`;
-
-    const userPrompt = `Buatkan ${count} SOAL BENAR/SALAH untuk "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
-
-Output JSON array saja. Format:
-{
-  "q": "pernyataan",
-  "ans": true  // true = benar, false = salah
-}
-
-Seimbang antara benar dan salah.`;
-
-    const result = await this._callDeepSeek(systemPrompt, userPrompt);
-    const cleaned = result.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('Format tidak valid.');
-    return JSON.parse(match[0]);
+    const r = await this._callAPI(
+      `Output HARUS JSON array valid.`,
+      `${count} SOAL BENAR/SALAH "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
+JSON: [{"q":"pernyataan","ans":true}] Seimbang benar/salah.`
+    );
+    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
   },
 
-  /** Generate flashcards */
   async generateFlashcards(subjectName, gradeLabel, chapterTitle, count = 8) {
-    const systemPrompt = `Kamu adalah asisten guru untuk SMP/MTs. Output HARUS berupa JSON array valid tanpa teks lain.`;
-
-    const userPrompt = `Buatkan ${count} FLASHCARD untuk "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
-
-Output JSON array saja. Format:
-{
-  "term": "istilah/konsep (sisi depan)",
-  "def": "definisi singkat 1-2 kalimat (sisi belakang)"
-}`;
-
-    const result = await this._callDeepSeek(systemPrompt, userPrompt);
-    const cleaned = result.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const match = cleaned.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('Format tidak valid.');
-    return JSON.parse(match[0]);
+    const r = await this._callAPI(
+      `Output HARUS JSON array valid.`,
+      `${count} FLASHCARD "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
+JSON: [{"term":"istilah","def":"definisi singkat"}]`
+    );
+    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
   }
 };

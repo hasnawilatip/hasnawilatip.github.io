@@ -486,38 +486,72 @@ const AdminDashboard = {
     App.pushState({ view: 'admin-ai' });
   },
 
-  /** AI Settings (API Key) */
+  /** AI Settings (API Key + Multi-Provider) */
   showAISettings() {
     if (!this._checkAdmin()) return;
 
-    const currentKey = AIAgent.getApiKey();
+    const activeProvider = AIAgent.getActiveProvider();
+    const providers = AIAgent.PROVIDERS;
+    const currentKey = AIAgent.getApiKey(activeProvider);
+    const currentModel = AIAgent.getModel(activeProvider);
     const masked = currentKey ? currentKey.slice(0, 6) + '...' + currentKey.slice(-4) : '';
 
     const main = document.getElementById('mainContent');
+
+    // Provider tabs
+    const providerTabs = Object.entries(providers).map(([id, p]) => {
+      const isActive = id === activeProvider;
+      const hasKey = !!AIAgent.getApiKey(id);
+      return `<button class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}"
+        onclick="AIAgent.setActiveProvider('${id}');AdminDashboard.showAISettings();"
+        style="margin:2px;">${p.icon} ${p.name} ${hasKey ? '✅' : ''}</button>`;
+    }).join('');
+
+    // Model options
+    const activeProv = providers[activeProvider];
+    const modelOptions = (activeProv?.models || []).map(m =>
+      `<option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>`
+    ).join('');
+
     main.innerHTML = `
-      <div class="fade-in" style="max-width:550px;margin:0 auto;">
+      <div class="fade-in" style="max-width:600px;margin:0 auto;">
         <div class="section-header">
           <h2>⚙️ AI Settings</h2>
-          <p style="color:var(--gray-700);">Konfigurasi DeepSeek API Key</p>
+          <p style="color:var(--gray-700);">Konfigurasi multi-provider AI</p>
         </div>
 
-        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
-          <p style="font-size:0.85rem;color:var(--gray-700);margin-bottom:12px;">
-            Dapatkan API Key dari <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:var(--blue);">platform.deepseek.com</a>
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">🔌 Pilih Provider AI</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${providerTabs}</div>
+          <p style="font-size:0.75rem;color:var(--gray-500);margin-top:8px;">
+            Aktif: <b>${activeProv.icon} ${activeProv.name}</b>
           </p>
-
-          ${currentKey ? `<p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:8px;">Key saat ini: <code>${masked}</code></p>` : ''}
-
-          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">DeepSeek API Key</label>
-          <input type="password" id="apiKeyInput" class="fill-input" placeholder="sk-..." value="${currentKey}" style="text-align:left;margin-bottom:16px;">
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="AdminDashboard._saveApiKey()">💾 Simpan</button>
-            <button class="btn btn-success btn-sm" onclick="AdminDashboard._testApi()">🔌 Tes Koneksi</button>
-            ${currentKey ? `<button class="btn btn-danger btn-sm" onclick="if(confirm('Hapus API Key?')){AIAgent.setApiKey('');AdminDashboard.showAISettings();}">🗑️ Hapus</button>` : ''}
-          </div>
-          <div id="apiTestResult" style="margin-top:12px;padding:12px;border-radius:var(--radius-sm);display:none;"></div>
-          <p id="apiKeyMsg" style="margin-top:8px;font-size:0.8rem;"></p>
         </div>
+
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">🔑 API Key — ${activeProv.icon} ${activeProv.name}</h4>
+          <p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:12px;">
+            Dapatkan di <a href="${activeProv.getApiLink}" target="_blank" style="color:var(--blue);">${activeProv.getApiLink}</a>
+          </p>
+          ${currentKey ? `<p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:8px;">Key: <code>${masked}</code></p>` : ''}
+
+          <input type="password" id="apiKeyInput" class="fill-input" placeholder="Masukkan API Key..." value="${currentKey}" style="text-align:left;margin-bottom:12px;">
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="btn btn-primary btn-sm" onclick="AdminDashboard._saveApiKey()">💾 Simpan</button>
+            <button class="btn btn-success btn-sm" onclick="AdminDashboard._testApi()">🔌 Tes Koneksi</button>
+            ${currentKey ? `<button class="btn btn-danger btn-sm" onclick="if(confirm('Hapus key?')){AIAgent.setApiKey('${activeProvider}','');AdminDashboard.showAISettings();}">🗑️</button>` : ''}
+          </div>
+          <div id="apiTestResult" style="padding:12px;border-radius:var(--radius-sm);display:none;"></div>
+        </div>
+
+        ${modelOptions ? `
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">🧩 Model</h4>
+          <select id="aiModelSelect" class="fill-input" style="text-align:left;" onchange="AdminDashboard._saveModel()">
+            ${modelOptions}
+          </select>
+        </div>` : ''}
 
         <div class="flex-center mt-3">
           <button class="btn btn-secondary" onclick="AdminDashboard.showAIGenerator()">🤖 Kembali</button>
@@ -527,42 +561,37 @@ const AdminDashboard = {
     App.pushState({ view: 'admin-ai-settings' });
   },
 
-  async _testApi() {
-    const resultEl = document.getElementById('apiTestResult');
-    resultEl.style.display = 'block';
-    resultEl.style.background = 'var(--blue-light)';
-    resultEl.innerHTML = '<p style="color:var(--blue);">⏳ Menguji koneksi ke DeepSeek API...</p>';
-
-    try {
-      const reply = await AIAgent.testConnection();
-      resultEl.style.background = 'var(--green-light)';
-      resultEl.innerHTML = `
-        <b style="color:var(--green);">✅ Koneksi Berhasil!</b>
-        <p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">Balasan AI: "${reply}"</p>
-      `;
-    } catch (err) {
-      resultEl.style.background = 'var(--red-light)';
-      resultEl.innerHTML = `
-        <b style="color:var(--red);">❌ Koneksi Gagal</b>
-        <p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">${err.message}</p>
-        <p style="font-size:0.75rem;color:var(--gray-500);">Pastikan API Key benar dan internet tersedia.</p>
-      `;
-    }
+  _saveModel() {
+    const model = document.getElementById('aiModelSelect')?.value;
+    if (model) AIAgent.setModel(AIAgent.getActiveProvider(), model);
   },
 
   _saveApiKey() {
     const key = document.getElementById('apiKeyInput').value.trim();
+    const resultEl = document.getElementById('apiTestResult');
     if (!key) {
-      document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--red);">API Key tidak boleh kosong.</span>';
+      if (resultEl) { resultEl.style.display = 'block'; resultEl.style.background = 'var(--red-light)'; resultEl.innerHTML = '<span style="color:var(--red);">API Key tidak boleh kosong.</span>'; }
       return;
     }
-    if (!key.startsWith('sk-')) {
-      document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--orange);">⚠️ Key biasanya diawali "sk-". Tetap simpan?</span><br><button class="btn btn-sm btn-primary" onclick="AIAgent.setApiKey(document.getElementById(\'apiKeyInput\').value.trim());AdminDashboard.showAIGenerator();">Ya, Simpan</button>';
-      return;
+    AIAgent.setApiKey(AIAgent.getActiveProvider(), key);
+    if (resultEl) { resultEl.style.display = 'block'; resultEl.style.background = 'var(--green-light)'; resultEl.innerHTML = '<span style="color:var(--green);">✅ API Key disimpan!</span>'; }
+    setTimeout(() => this.showAISettings(), 600);
+  },
+
+  async _testApi() {
+    const resultEl = document.getElementById('apiTestResult');
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--blue-light)';
+    resultEl.innerHTML = '<p style="color:var(--blue);">⏳ Menguji koneksi ke ' + AIAgent.PROVIDERS[AIAgent.getActiveProvider()].name + '...</p>';
+
+    try {
+      const reply = await AIAgent.testConnection();
+      resultEl.style.background = 'var(--green-light)';
+      resultEl.innerHTML = `<b style="color:var(--green);">✅ Koneksi Berhasil!</b><p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">${reply}</p>`;
+    } catch (err) {
+      resultEl.style.background = 'var(--red-light)';
+      resultEl.innerHTML = `<b style="color:var(--red);">❌ Koneksi Gagal</b><p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">${err.message}</p>`;
     }
-    AIAgent.setApiKey(key);
-    document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--green);">✅ API Key disimpan!</span>';
-    setTimeout(() => this.showAIGenerator(), 800);
   },
 
   /** Form Generate Konten */
