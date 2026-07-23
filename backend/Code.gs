@@ -119,7 +119,16 @@ function getAllUsersData() {
 function registerUser(data) {
   const users = getUsers();
   const key = data.username.toLowerCase().trim();
-  if (users[key]) return { error: 'Username sudah terdaftar.' };
+  // Biarkan overwrite jika user sudah ada (untuk development)
+  if (users[key]) {
+    // Hapus baris lama dulu
+    const ss = ensureSheets();
+    const sheet = ss.getSheetByName('users');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0] === key) sheet.deleteRow(i + 1);
+    }
+  }
   if (data.role === 'admin' && data.adminCode !== 'mtsadmin2026') return { error: 'Kode admin tidak valid.' };
 
   const ss = ensureSheets();
