@@ -51,7 +51,7 @@ function response(data) {
 }
 
 // ─── GANTI dengan ID Spreadsheet Anda ───
-const SPREADSHEET_ID = '1a2B3cD4eF5g...'; // ← PASTE ID DI SINI
+const SPREADSHEET_ID = '1oyG3_tiPJE_zUj8wuepzdlYnjctMlz5S5ZuCaqaOHec';
 
 function ensureSheets() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
