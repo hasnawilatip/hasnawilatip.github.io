@@ -137,6 +137,11 @@ const AdminDashboard = {
             <div><div class="chapter-title">AI Generator Konten</div>
             <div class="chapter-meta">Generate materi, soal, flashcard otomatis dengan AI</div></div>
           </div>
+          <div class="chapter-card k7" onclick="AdminDashboard.showPerangkatPembelajaran()">
+            <div class="chapter-num">📋</div>
+            <div><div class="chapter-title">Perangkat Pembelajaran</div>
+            <div class="chapter-meta">RPP, Silabus, Bahan Ajar, Evaluasi (AI)</div></div>
+          </div>
           <div class="chapter-card k7" onclick="AdminDashboard.showContentEditor()">
             <div class="chapter-num">📝</div>
             <div><div class="chapter-title">Editor Konten</div>
@@ -476,6 +481,135 @@ const AdminDashboard = {
   },
 
   // ─── HELPER FUNCTIONS ───
+
+  /** Perangkat Pembelajaran — RPP, Silabus, dll */
+  showPerangkatPembelajaran() {
+    if (!this._checkAdmin()) return;
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:750px;margin:0 auto;">
+        <div class="section-header">
+          <h2>📋 Perangkat Pembelajaran</h2>
+          <p style="color:var(--gray-700);">Generate RPP, Silabus, Bahan Ajar, dan Evaluasi dengan AI</p>
+        </div>
+
+        <h3 style="color:var(--blue);margin:20px 0 12px;">📅 Perencanaan Pembelajaran</h3>
+        <div class="chapter-grid">
+          <div class="chapter-card k7" onclick="AdminDashboard._genPerangkat('rpp')">
+            <div class="chapter-num">📖</div><div><div class="chapter-title">RPP / Modul Ajar</div><div class="chapter-meta">Rencana Pelaksanaan Pembelajaran</div></div>
+          </div>
+          <div class="chapter-card k8" onclick="AdminDashboard._genPerangkat('silabus')">
+            <div class="chapter-num">📋</div><div><div class="chapter-title">Silabus</div><div class="chapter-meta">Garis besar materi pembelajaran</div></div>
+          </div>
+          <div class="chapter-card k9" onclick="AdminDashboard._genPerangkat('prota')">
+            <div class="chapter-num">📅</div><div><div class="chapter-title">Prota & Promes</div><div class="chapter-meta">Program Tahunan & Semester</div></div>
+          </div>
+        </div>
+
+        <h3 style="color:var(--green);margin:20px 0 12px;">📝 Pelaksanaan & Pendukung</h3>
+        <div class="chapter-grid">
+          <div class="chapter-card k7" onclick="AdminDashboard._genPerangkat('bahanajar')">
+            <div class="chapter-num">📚</div><div><div class="chapter-title">Bahan Ajar</div><div class="chapter-meta">Materi lengkap siap pakai</div></div>
+          </div>
+          <div class="chapter-card k8" onclick="AdminDashboard._genPerangkat('lkpd')">
+            <div class="chapter-num">✍️</div><div><div class="chapter-title">LKPD</div><div class="chapter-meta">Lembar Kerja Peserta Didik</div></div>
+          </div>
+          <div class="chapter-card k9" onclick="AdminDashboard._genPerangkat('media')">
+            <div class="chapter-num">🎯</div><div><div class="chapter-title">Media Pembelajaran</div><div class="chapter-meta">Ide media & alat peraga</div></div>
+          </div>
+        </div>
+
+        <h3 style="color:var(--purple);margin:20px 0 12px;">📊 Evaluasi & Administrasi</h3>
+        <div class="chapter-grid">
+          <div class="chapter-card k7" onclick="AdminDashboard._genPerangkat('kisikisi')">
+            <div class="chapter-num">🎯</div><div><div class="chapter-title">Kisi-Kisi Soal</div><div class="chapter-meta">Blueprint penilaian</div></div>
+          </div>
+          <div class="chapter-card k8" onclick="AdminDashboard._genPerangkat('rubrik')">
+            <div class="chapter-num">📐</div><div><div class="chapter-title">Rubrik Penilaian</div><div class="chapter-meta">Kriteria penilaian terstandar</div></div>
+          </div>
+          <div class="chapter-card k9" onclick="AdminDashboard._genPerangkat('remedial')">
+            <div class="chapter-num">🔄</div><div><div class="chapter-title">Remedial & Pengayaan</div><div class="chapter-meta">Program perbaikan nilai</div></div>
+          </div>
+        </div>
+
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="AdminDashboard.showDashboard()">🛡️ Dashboard</button>
+        </div>
+      </div>
+    `;
+    App.pushState({ view: 'admin-perangkat' });
+  },
+
+  /** Generate perangkat via AI */
+  _genPerangkat(type) {
+    if (!this._checkAdmin()) return;
+
+    const labels = {
+      rpp: '📖 RPP / Modul Ajar', silabus: '📋 Silabus', prota: '📅 Prota & Promes',
+      bahanajar: '📚 Bahan Ajar', lkpd: '✍️ LKPD', media: '🎯 Media',
+      kisikisi: '🎯 Kisi-Kisi', rubrik: '📐 Rubrik', remedial: '🔄 Remedial'
+    };
+
+    const subjects = SUBJECTS;
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:600px;margin:0 auto;">
+        <div class="section-header"><h2>${labels[type]}</h2><p>AI akan generate otomatis</p></div>
+        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <label class="fill-label">Mata Pelajaran</label>
+          <select id="ppMapel" class="fill-input" style="margin-bottom:14px;">${subjects.map(s=>`<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select>
+
+          <label class="fill-label">Kelas</label>
+          <select id="ppKelas" class="fill-input" style="margin-bottom:14px;">
+            <option value="7">Kelas 7</option><option value="8">Kelas 8</option><option value="9">Kelas 9</option>
+          </select>
+
+          <label class="fill-label">Topik / Bab (opsional)</label>
+          <input id="ppTopik" class="fill-input" placeholder="Kosongkan untuk generate per semester" style="margin-bottom:20px;">
+
+          <button class="btn btn-primary" onclick="AdminDashboard._doGenPerangkat('${type}')" style="width:100%;">🤖 Generate</button>
+          <div id="ppResult" style="margin-top:16px;"></div>
+        </div>
+        <div class="flex-center mt-3"><button class="btn btn-secondary" onclick="AdminDashboard.showPerangkatPembelajaran()">⬅ Kembali</button></div>
+      </div>`;
+    App.pushState({ view: 'admin-perangkat-gen', type });
+  },
+
+  async _doGenPerangkat(type) {
+    const subjectId = document.getElementById('ppMapel')?.value;
+    const kelas = document.getElementById('ppKelas')?.value || '7';
+    const topik = document.getElementById('ppTopik')?.value?.trim();
+    const info = App._getSubjectInfo(subjectId);
+    const resultEl = document.getElementById('ppResult');
+    resultEl.innerHTML = '<p style="color:var(--blue);">🤖 AI sedang generate...</p>';
+
+    const prompts = {
+      rpp: `Buat RPP/Modul Ajar Kurikulum Merdeka Fase D untuk ${info.name} kelas ${kelas} SMP/MTs${topik ? ', topik: '+topik : ''}. Format lengkap: identitas, capaian pembelajaran, tujuan, langkah pembelajaran, asesmen. HTML.`,
+      silabus: `Buat Silabus ${info.name} kelas ${kelas} SMP/MTs Kurikulum Merdeka semester 1&2. Format: kompetensi inti, KD, materi pokok, alokasi waktu, sumber. HTML.`,
+      prota: `Buat Program Tahunan & Program Semester ${info.name} kelas ${kelas} SMP/MTs. Format: tabel dengan kolom semester, bab, alokasi waktu, keterangan. HTML.`,
+      bahanajar: `Buat Bahan Ajar lengkap ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Mencakup ringkasan materi, contoh soal, latihan. HTML.`,
+      lkpd: `Buat LKPD ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Format: tujuan, petunjuk, langkah kerja, pertanyaan, kesimpulan. HTML.`,
+      media: `Beri 5 ide Media Pembelajaran kreatif untuk ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Setiap ide: nama media, bahan, cara pakai. HTML.`,
+      kisikisi: `Buat Kisi-Kisi Soal ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Tabel: KD, indikator, level kognitif, bentuk soal, nomor soal. HTML.`,
+      rubrik: `Buat Rubrik Penilaian ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Tabel: kriteria, skor 1-4, deskripsi. HTML.`,
+      remedial: `Buat Program Remedial & Pengayaan ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Format: analisis, rencana remedial, rencana pengayaan. HTML.`
+    };
+
+    try {
+      const system = 'Kamu asisten guru profesional Kurikulum Merdeka SMP/MTs. Output HTML langsung.';
+      const user = prompts[type] || prompts.rpp;
+      const result = await AIAgent._callAPI(system, user);
+      resultEl.innerHTML = `<div style="background:var(--green-light);padding:16px;border-radius:8px;max-height:500px;overflow:auto;font-size:0.85rem;">${result}</div><button class="btn btn-sm btn-primary mt-2" onclick="AdminDashboard._copyResult()">📋 Copy</button><textarea id="ppCopy" style="display:none;">${this._escAttr(result)}</textarea>`;
+    } catch(e) {
+      resultEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);">❌ ${e.message}</div>`;
+    }
+  },
+
+  _copyResult() {
+    const ta = document.getElementById('ppCopy');
+    if (ta) { ta.style.display='block'; ta.select(); document.execCommand('copy'); ta.style.display='none'; alert('Disalin!'); }
+  },
 
   /** AI Generator — main page: pilih mapel & kelas */
   showAIGenerator() {

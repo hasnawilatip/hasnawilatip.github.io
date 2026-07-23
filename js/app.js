@@ -492,6 +492,8 @@ const App = {
       case 'admin-ai': AdminDashboard.showAIGenerator(); break;
       case 'admin-ai-batch': AdminDashboard.showAIBatchGenerate(); break;
       case 'admin-ai-settings': AdminDashboard.showAISettings(); break;
+      case 'admin-perangkat': AdminDashboard.showPerangkatPembelajaran(); break;
+      case 'admin-perangkat-gen': AdminDashboard._genPerangkat(prev.type); break;
       case 'admin-edit-subject': AdminDashboard.editSubject(prev.subjectId); break;
       case 'admin-edit-chapter': AdminDashboard.editChapter(prev.subjectId, prev.gradeKey || prev.grade, prev.chapterId); break;
       case 'admin-users': AdminDashboard.showUserManager(); break;
