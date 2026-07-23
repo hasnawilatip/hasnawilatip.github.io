@@ -652,13 +652,18 @@ const AdminDashboard = {
             </span>
           </div>
 
-          ${sem1.length > 0 ? `<h5 style="color:var(--blue);margin:12px 0 8px;">📗 Semester 1</h5>` : ''}
-          ${sem1.map(ch => this._chapterCheckbox(ch, info)).join('')}
+          <button class="btn btn-sm btn-primary" onclick="AdminDashboard._fetchCurriculum('${subjectId}','${gradeKey}')" style="margin-bottom:12px;width:100%;">🔍 Cari Data Bab Sesuai Kurikulum Merdeka (AI)</button>
+          <div id="curriculumMsg" style="font-size:0.8rem;margin-bottom:8px;"></div>
 
-          ${sem2.length > 0 ? `<h5 style="color:var(--green);margin:12px 0 8px;">📘 Semester 2</h5>` : ''}
-          ${sem2.map(ch => this._chapterCheckbox(ch, info)).join('')}
+          <div id="chapterCheckboxArea">
+            ${sem1.length > 0 ? `<h5 style="color:var(--blue);margin:12px 0 8px;">📗 Semester 1</h5>` : ''}
+            ${sem1.map(ch => this._chapterCheckbox(ch, info)).join('')}
 
-          ${chapters.length === 0 ? '<p style="color:var(--gray-500);text-align:center;padding:20px;">Belum ada data bab untuk mapel ini. Gunakan <b>Topik Kustom</b> di bawah.</p>' : ''}
+            ${sem2.length > 0 ? `<h5 style="color:var(--green);margin:12px 0 8px;">📘 Semester 2</h5>` : ''}
+            ${sem2.map(ch => this._chapterCheckbox(ch, info)).join('')}
+
+            ${chapters.length === 0 ? '<p style="color:var(--gray-500);text-align:center;padding:20px;">Belum ada data bab. Klik tombol <b>🔍 Cari Data Bab</b> di atas untuk mengambil data dari AI.</p>' : ''}
+          </div>
         </div>
 
         <!-- Topik kustom -->
@@ -692,6 +697,53 @@ const AdminDashboard = {
 
   _toggleAllChapters(on) {
     document.querySelectorAll('.aiChapterCb').forEach(cb => { cb.checked = on; });
+  },
+
+  /** Fetch daftar bab dari AI sesuai Kurikulum Merdeka */
+  async _fetchCurriculum(subjectId, gradeKey) {
+    const msgEl = document.getElementById('curriculumMsg');
+    const areaEl = document.getElementById('chapterCheckboxArea');
+    if (!msgEl || !areaEl) return;
+
+    msgEl.innerHTML = '<span style="color:var(--blue);">⏳ AI mencari data kurikulum...</span>';
+
+    const info = App._getSubjectInfo(subjectId);
+    const gradeLabel = gradeKey === 'k7' ? '7' : gradeKey === 'k8' ? '8' : '9';
+
+    try {
+      const chapters = await AIAgent.searchCurriculum(info.name, gradeLabel);
+
+      if (!chapters || chapters.length === 0) {
+        msgEl.innerHTML = '<span style="color:var(--red);">❌ AI tidak menemukan data. Coba lagi atau gunakan topik kustom.</span>';
+        return;
+      }
+
+      // Render ulang chapter checkboxes
+      const sem1 = chapters.filter(c => c.sem === 1);
+      const sem2 = chapters.filter(c => c.sem === 2);
+
+      areaEl.innerHTML = `
+        ${sem1.length > 0 ? `<h5 style="color:var(--blue);margin:12px 0 8px;">📗 Semester 1</h5>` : ''}
+        ${sem1.map(ch => this._chapterCheckbox(ch, info)).join('')}
+
+        ${sem2.length > 0 ? `<h5 style="color:var(--green);margin:12px 0 8px;">📘 Semester 2</h5>` : ''}
+        ${sem2.map(ch => this._chapterCheckbox(ch, info)).join('')}
+      `;
+
+      msgEl.innerHTML = `<span style="color:var(--green);">✅ Ditemukan ${chapters.length} bab dari Kurikulum Merdeka!</span>`;
+
+      // Simpan ke overrides supaya下次 langsung ada
+      const overrides = this.loadOverrides();
+      if (!overrides[subjectId]) overrides[subjectId] = {};
+      if (!overrides[subjectId][gradeKey]) {
+        overrides[subjectId][gradeKey] = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey] || {}));
+      }
+      overrides[subjectId][gradeKey].chapters = chapters;
+      this.saveOverrides(overrides);
+
+    } catch (err) {
+      msgEl.innerHTML = `<span style="color:var(--red);">❌ Gagal: ${err.message}</span>`;
+    }
   },
 
   /** Proses batch generate */

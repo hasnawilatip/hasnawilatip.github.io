@@ -153,5 +153,32 @@ JSON: [{"term":"istilah","def":"definisi singkat"}]`
     );
     const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
     const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
+  },
+
+  /** Cari daftar bab sesuai Kurikulum Merdeka */
+  async searchCurriculum(subjectName, gradeLabel) {
+    const r = await this._callAPI(
+      `Kamu adalah ahli Kurikulum Merdeka Indonesia untuk SMP/MTs. Output HARUS JSON array valid.`,
+      `Berikan daftar bab untuk mata pelajaran "${subjectName}" kelas ${gradeLabel} SMP/MTs sesuai Kurikulum Merdeka Fase D.
+
+Format JSON array:
+[
+  {"id":1, "title":"Judul Bab", "sem":1, "desc":"Deskripsi singkat 1 kalimat"},
+  ...
+]
+
+Ketentuan:
+- id: nomor urut bab (1, 2, 3, ...)
+- title: judul bab yang SESUAI KURIKULUM MERDEKA (jangan placeholder!)
+- sem: 1 untuk semester 1, 2 untuk semester 2
+- desc: deskripsi singkat bab tersebut (1 kalimat)
+- Urutkan per semester
+- Bab biasanya 4-5 per semester
+- HANYA output JSON, tanpa teks lain`
+    );
+    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    const m = c.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('Format tidak valid. Coba lagi.');
+    return JSON.parse(m[0]);
   }
 };
