@@ -105,7 +105,7 @@ const App = {
           <p class="landing-subtitle">Platform belajar interaktif lengkap untuk SMP/MTs<br>
           sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
           ${loggedIn ? `
-            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : '🎒 Siswa'})</p>
+            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : user.role === 'admin' ? '🛡️ Admin' : '🎒 Siswa'})</p>
             <div style="margin-top:16px;">
               <button class="btn btn-primary btn-lg" onclick="${user.role === 'admin' ? 'AdminDashboard.showDashboard()' : 'App.showHome()'}" style="font-size:1.1rem;padding:14px 36px;">📚 ${user.role === 'admin' ? 'Dashboard Admin' : 'Lanjutkan Belajar'}</button>
             </div>
@@ -113,8 +113,9 @@ const App = {
               <a href="#" onclick="App._doLogout();return false;" style="color:var(--red);">🚪 Keluar / Ganti Akun</a>
             </p>
           ` : `
-            <div style="margin-top:20px;">
-              <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
+            <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar</button>
+              <button class="btn btn-secondary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Jelajahi Mapel</button>
             </div>
             <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a></p>
           `}
@@ -247,7 +248,8 @@ const App = {
   },
 
   /** Halaman Login */
-  showLogin() {
+  showLogin(returnUrl) {
+    this._returnUrl = returnUrl || '';
     const main = document.getElementById('mainContent');
     main.innerHTML = `
       <div class="fade-in" style="max-width:420px;margin:0 auto;">
@@ -302,6 +304,10 @@ const App = {
       this._updateHeader();
       if (result.user && result.user.role === 'admin') {
         AdminDashboard.showDashboard();
+      } else if (this._returnUrl) {
+        const [sid, gk, cid] = this._returnUrl.split('|');
+        this._returnUrl = '';
+        this.showChapter(sid, gk, parseInt(cid));
       } else {
         this.showHome();
       }
@@ -503,7 +509,6 @@ const App = {
 
   // ─── HOME — Pilih Mata Pelajaran ───
   showHome() {
-    if (!this._requireAuth()) return;
     this._updateHeader();
     this.currentSubject = null;
     this.currentGrade = null;
@@ -650,8 +655,9 @@ const App = {
     const cls = gradeKey === 'k7' ? 'k7' : gradeKey === 'k8' ? 'k8' : 'k9';
     const icon = ch.sem === 1 ? '📗' : '📘';
     const isPremium = ch.premium || false;
+    const loggedIn = Auth.isLoggedIn();
     const unlocked = !isPremium || Auth.isUnlocked(subjectId, gradeKey, ch.id);
-    const lockIcon = isPremium && !unlocked ? ' 🔒' : '';
+    const lockIcon = (!loggedIn || (isPremium && !unlocked)) ? ' 🔒' : '';
     const costText = isPremium && !unlocked ? ` · 🪙${ch.cost || 1}` : '';
     return `
       <div class="chapter-card ${cls}" onclick="App.showChapter('${subjectId}','${gradeKey}',${ch.id})" style="border-left-color:${subj.color};">
@@ -748,7 +754,12 @@ const App = {
       return;
     }
 
-    // Track progress
+    // Cek login — jika belum, arahkan ke login
+    if (!Auth.isLoggedIn()) {
+      const returnUrl = `${subjectId}|${gradeKey}|${chapterId}`;
+      this.showLogin(returnUrl);
+      return;
+    }
     ProgressTracker.markChapterRead(gradeKey, chapterId);
 
     const main = document.getElementById('mainContent');
