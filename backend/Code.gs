@@ -50,37 +50,30 @@ function response(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ─── ENSURE SPREADSHEET EXISTS ───
-function getOrCreateSpreadsheet() {
-  // Cek apakah sudah ada spreadsheet tersimpan
-  const props = PropertiesService.getScriptProperties();
-  let ssId = props.getProperty('SPREADSHEET_ID');
+// ─── ENSURE SPREADSHEET ───
+function ensureSheets() {
+  let ss;
+  // Coba bound spreadsheet dulu
+  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch(e) {}
 
-  if (ssId) {
-    try {
-      return SpreadsheetApp.openById(ssId);
-    } catch (e) {
-      // Spreadsheet dihapus, buat baru
+  // Kalau standalone, pakai ID yang disimpan
+  if (!ss) {
+    const props = PropertiesService.getScriptProperties();
+    const ssId = props.getProperty('SPREADSHEET_ID');
+    if (ssId) {
+      try { ss = SpreadsheetApp.openById(ssId); } catch(e) {}
     }
   }
 
-  // Buat spreadsheet baru
-  const ss = SpreadsheetApp.create('MediaInteraktifDB');
-  ssId = ss.getId();
-  props.setProperty('SPREADSHEET_ID', ssId);
+  // Buat baru jika belum ada
+  if (!ss) {
+    ss = SpreadsheetApp.create('MediaInteraktifDB');
+    try {
+      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId());
+    } catch(e) {}
+  }
 
-  // Setup sheet awal
-  setupSheets(ss);
-  return ss;
-}
-
-function ensureSheets() {
-  const ss = getOrCreateSpreadsheet();
-  setupSheets(ss);
-  return ss;
-}
-
-function setupSheets(ss) {
+  // Setup sheet tabs
   const names = ['users', 'content', 'progress'];
   names.forEach(name => {
     let sheet = ss.getSheetByName(name);
@@ -97,10 +90,12 @@ function setupSheets(ss) {
         sheet.appendRow(['username', 'progressJson', 'updatedAt']);
       }
     }
-    // Hapus sheet default "Sheet1" jika ada
-    const defaultSheet = ss.getSheetByName('Sheet1');
-    if (defaultSheet) ss.deleteSheet(defaultSheet);
   });
+  // Hapus Sheet1 default
+  const def = ss.getSheetByName('Sheet1');
+  if (def) ss.deleteSheet(def);
+
+  return ss;
 }
 
 // ─── SIMPLE HASH ───
