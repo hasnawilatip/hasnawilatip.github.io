@@ -512,8 +512,10 @@ const AdminDashboard = {
           <input type="password" id="apiKeyInput" class="fill-input" placeholder="sk-..." value="${currentKey}" style="text-align:left;margin-bottom:16px;">
           <div style="display:flex;gap:8px;">
             <button class="btn btn-primary" onclick="AdminDashboard._saveApiKey()">💾 Simpan</button>
+            <button class="btn btn-success btn-sm" onclick="AdminDashboard._testApi()">🔌 Tes Koneksi</button>
             ${currentKey ? `<button class="btn btn-danger btn-sm" onclick="if(confirm('Hapus API Key?')){AIAgent.setApiKey('');AdminDashboard.showAISettings();}">🗑️ Hapus</button>` : ''}
           </div>
+          <div id="apiTestResult" style="margin-top:12px;padding:12px;border-radius:var(--radius-sm);display:none;"></div>
           <p id="apiKeyMsg" style="margin-top:8px;font-size:0.8rem;"></p>
         </div>
 
@@ -525,7 +527,28 @@ const AdminDashboard = {
     App.pushState({ view: 'admin-ai-settings' });
   },
 
-  _saveApiKey() {
+  async _testApi() {
+    const resultEl = document.getElementById('apiTestResult');
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--blue-light)';
+    resultEl.innerHTML = '<p style="color:var(--blue);">⏳ Menguji koneksi ke DeepSeek API...</p>';
+
+    try {
+      const reply = await AIAgent.testConnection();
+      resultEl.style.background = 'var(--green-light)';
+      resultEl.innerHTML = `
+        <b style="color:var(--green);">✅ Koneksi Berhasil!</b>
+        <p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">Balasan AI: "${reply}"</p>
+      `;
+    } catch (err) {
+      resultEl.style.background = 'var(--red-light)';
+      resultEl.innerHTML = `
+        <b style="color:var(--red);">❌ Koneksi Gagal</b>
+        <p style="margin-top:4px;font-size:0.85rem;color:var(--gray-700);">${err.message}</p>
+        <p style="font-size:0.75rem;color:var(--gray-500);">Pastikan API Key benar dan internet tersedia.</p>
+      `;
+    }
+  },
     const key = document.getElementById('apiKeyInput').value.trim();
     if (!key) {
       document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--red);">API Key tidak boleh kosong.</span>';

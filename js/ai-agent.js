@@ -56,7 +56,14 @@ const AIAgent = {
     return text;
   },
 
-  /** Generate materi pembelajaran per bab */
+  /** Test koneksi API — kirim prompt sederhana */
+  async testConnection() {
+    const result = await this._callDeepSeek(
+      'Kamu adalah asisten yang ramah. Jawab singkat dalam bahasa Indonesia.',
+      'Balas: "✅ Koneksi DeepSeek API berhasil! Siap generate konten."'
+    );
+    return result;
+  },
   async generateMaterial(subjectName, gradeLabel, chapterTitle, chapterNum) {
     const systemPrompt = `Kamu adalah asisten guru profesional untuk SMP/MTs Kurikulum Merdeka di Indonesia. Buat materi pembelajaran yang LENGKAP, mendalam, dan sesuai tingkat SMP/MTs.`;
 
