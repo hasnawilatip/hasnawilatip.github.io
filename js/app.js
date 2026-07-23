@@ -37,7 +37,10 @@ const App = {
 
     // Tunggu Firebase Auth siap, lalu tentukan halaman
     if (typeof FB !== 'undefined' && FB.auth) {
+      let authResolved = false;
       FB.auth.onAuthStateChanged(async (fbUser) => {
+        if (authResolved) return;
+        authResolved = true;
         if (fbUser) {
           const snap = await FB.db.ref('users/' + fbUser.uid).once('value');
           const data = snap.val() || {};
@@ -57,6 +60,10 @@ const App = {
           this.showLanding();
         }
       });
+      // Fallback: if auth doesn't resolve within 3s, show landing anyway
+      setTimeout(() => {
+        if (!authResolved) { authResolved = true; this.showLanding(); }
+      }, 3000);
       return;
     }
 
