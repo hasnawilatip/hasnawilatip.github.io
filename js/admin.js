@@ -846,6 +846,9 @@ const AdminDashboard = {
 
     this.saveOverrides(overrides);
   },
+
+  /** Generate single item (fallback dari halaman lain) */
+  showAIGenerate(type) {
     if (!this._checkAdmin()) return;
 
     const subjects = SUBJECTS;
