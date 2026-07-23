@@ -67,7 +67,15 @@ const AdminDashboard = {
     const overrides = this.loadOverrides();
     const subjCount = Object.keys(overrides).length;
     const users = Auth._getUsers();
-    const userCount = Object.keys(users).length;
+    let userCount = Object.keys(users).length;
+    // Firebase user count (async update)
+    if (typeof FB !== 'undefined') {
+      FB.db.ref('users').once('value').then(snap => {
+        const fbUsers = snap.val() || {};
+        const el = document.getElementById('adminUserCount');
+        if (el) el.textContent = Object.keys(fbUsers).length;
+      });
+    }
 
     // Build daftar konten per mapel
     let contentOverview = '';
@@ -98,7 +106,7 @@ const AdminDashboard = {
         <!-- Statistik Admin -->
         <div class="landing-stats" style="margin-bottom:20px;">
           <div class="landing-stat">
-            <span class="landing-stat-num">${userCount}</span>
+            <span class="landing-stat-num" id="adminUserCount">${userCount}</span>
             <span class="landing-stat-label">User Terdaftar</span>
           </div>
           <div class="landing-stat">
@@ -318,32 +326,43 @@ const AdminDashboard = {
     App.pushState({ view: 'admin-edit-chapter', subjectId, gradeKey, chapterId });
   },
 
-  /** Manajemen User */
-  showUserManager() {
+  /** Manajemen User — dari Firebase */
+  async showUserManager() {
     if (!this._checkAdmin()) return;
 
-    const users = Auth._getUsers();
-    const userList = Object.entries(users);
-
     const main = document.getElementById('mainContent');
+    main.innerHTML = `<div class="fade-in" style="max-width:700px;margin:0 auto;"><div class="section-header"><h2>👥 Manajemen User</h2><p style="color:var(--gray-700);">⏳ Memuat data...</p></div></div>`;
+
+    let userList = [];
+    try {
+      if (typeof FB !== 'undefined') {
+        const snap = await FB.db.ref('users').once('value');
+        const users = snap.val() || {};
+        userList = Object.entries(users).map(([uid, u]) => ({
+          email: u.email || uid, displayName: u.displayName, role: u.role, credits: u.credits, createdAt: u.createdAt
+        }));
+      }
+    } catch(e) { userList = []; }
+
     main.innerHTML = `
       <div class="fade-in" style="max-width:700px;margin:0 auto;">
         <div class="section-header">
           <h2>👥 Manajemen User</h2>
-          <p style="color:var(--gray-700);">Total: <b>${userList.length}</b> user terdaftar di perangkat ini</p>
+          <p style="color:var(--gray-700);">Total: <b>${userList.length}</b> user terdaftar (Firebase)</p>
         </div>
 
         ${userList.length === 0 ? '<p style="text-align:center;color:var(--gray-500);">Belum ada user terdaftar.</p>' : `
-        <div style="background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);">
+        <div style="background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);overflow-x:auto;">
           <table class="simple-table" style="font-size:0.85rem;">
-            <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Terdaftar</th></tr></thead>
+            <thead><tr><th>Email</th><th>Nama</th><th>Role</th><th>Kredit</th><th>Terdaftar</th></tr></thead>
             <tbody>
-              ${userList.map(([key, u]) => `
+              ${userList.map(u => `
                 <tr>
-                  <td><b>${key}</b></td>
+                  <td><b>${u.email}</b></td>
                   <td>${u.displayName}</td>
                   <td>${u.role === 'admin' ? '🛡️ Admin' : u.role === 'guru' ? '👨‍🏫 Guru' : '🎒 Siswa'}</td>
-                  <td>${new Date(u.createdAt).toLocaleDateString('id')}</td>
+                  <td>💰 ${u.credits || 0}</td>
+                  <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString('id') : '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
