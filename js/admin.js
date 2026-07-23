@@ -558,42 +558,73 @@ const AdminDashboard = {
         <div class="section-header"><h2>${labels[type]}</h2><p>AI akan generate otomatis</p></div>
         <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
           <label class="fill-label">Mata Pelajaran</label>
-          <select id="ppMapel" class="fill-input" style="margin-bottom:14px;">${subjects.map(s=>`<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select>
+          <select id="ppMapel" class="fill-input" style="margin-bottom:14px;" onchange="AdminDashboard._ppUpdateChapters()">${subjects.map(s=>`<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}</select>
 
           <label class="fill-label">Kelas</label>
-          <select id="ppKelas" class="fill-input" style="margin-bottom:14px;">
-            <option value="7">Kelas 7</option><option value="8">Kelas 8</option><option value="9">Kelas 9</option>
+          <select id="ppKelas" class="fill-input" style="margin-bottom:14px;" onchange="AdminDashboard._ppUpdateChapters()">
+            <option value="k7">Kelas 7</option><option value="k8">Kelas 8</option><option value="k9">Kelas 9</option>
           </select>
 
-          <label class="fill-label">Topik / Bab (opsional)</label>
-          <input id="ppTopik" class="fill-input" placeholder="Kosongkan untuk generate per semester" style="margin-bottom:20px;">
+          <label class="fill-label">Bab (dari konten mapel)</label>
+          <select id="ppBab" class="fill-input" style="margin-bottom:14px;">
+            <option value="">-- Semua Bab (per semester) --</option>
+          </select>
+
+          <label class="fill-label">Atau Topik Kustom</label>
+          <input id="ppTopik" class="fill-input" placeholder="Isi manual jika tidak ada di daftar bab" style="margin-bottom:20px;">
 
           <button class="btn btn-primary" onclick="AdminDashboard._doGenPerangkat('${type}')" style="width:100%;">🤖 Generate</button>
           <div id="ppResult" style="margin-top:16px;"></div>
         </div>
         <div class="flex-center mt-3"><button class="btn btn-secondary" onclick="AdminDashboard.showPerangkatPembelajaran()">⬅ Kembali</button></div>
       </div>`;
+    // Populate bab dropdown
+    setTimeout(() => this._ppUpdateChapters(), 100);
     App.pushState({ view: 'admin-perangkat-gen', type });
+  },
+
+  /** Populate bab dropdown dari konten mapel */
+  _ppUpdateChapters() {
+    const subjectId = document.getElementById('ppMapel')?.value;
+    const gradeKey = document.getElementById('ppKelas')?.value;
+    const select = document.getElementById('ppBab');
+    if (!select) return;
+    const data = App._getData(subjectId);
+    const grade = data?.[gradeKey];
+    select.innerHTML = '<option value="">-- Semua Bab (per semester) --</option>';
+    if (grade && grade.chapters) {
+      grade.chapters.forEach(ch => {
+        select.innerHTML += `<option value="${this._escAttr(ch.title)}">Bab ${ch.id}: ${ch.title}</option>`;
+      });
+    }
   },
 
   async _doGenPerangkat(type) {
     const subjectId = document.getElementById('ppMapel')?.value;
-    const kelas = document.getElementById('ppKelas')?.value || '7';
-    const topik = document.getElementById('ppTopik')?.value?.trim();
+    const kelasEl = document.getElementById('ppKelas');
+    const kelasVal = kelasEl?.value || 'k7';
+    const kelas = kelasVal.replace('k','');
+    const babSelect = document.getElementById('ppBab')?.value;
+    const customTopik = document.getElementById('ppTopik')?.value?.trim();
+    const topik = babSelect || customTopik || '';
     const info = App._getSubjectInfo(subjectId);
     const resultEl = document.getElementById('ppResult');
     resultEl.innerHTML = '<p style="color:var(--blue);">🤖 AI sedang generate...</p>';
 
+    const gradeInfo = `kelas ${kelas} SMP/MTs`;
+    const topicInfo = topik ? `, topik: ${topik}` : '';
+    const t = gradeInfo + topicInfo;
+
     const prompts = {
-      rpp: `Buat RPP/Modul Ajar Kurikulum Merdeka Fase D untuk ${info.name} kelas ${kelas} SMP/MTs${topik ? ', topik: '+topik : ''}. Format lengkap: identitas, capaian pembelajaran, tujuan, langkah pembelajaran, asesmen. HTML.`,
-      silabus: `Buat Silabus ${info.name} kelas ${kelas} SMP/MTs Kurikulum Merdeka semester 1&2. Format: kompetensi inti, KD, materi pokok, alokasi waktu, sumber. HTML.`,
-      prota: `Buat Program Tahunan & Program Semester ${info.name} kelas ${kelas} SMP/MTs. Format: tabel dengan kolom semester, bab, alokasi waktu, keterangan. HTML.`,
-      bahanajar: `Buat Bahan Ajar lengkap ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Mencakup ringkasan materi, contoh soal, latihan. HTML.`,
-      lkpd: `Buat LKPD ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Format: tujuan, petunjuk, langkah kerja, pertanyaan, kesimpulan. HTML.`,
-      media: `Beri 5 ide Media Pembelajaran kreatif untuk ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Setiap ide: nama media, bahan, cara pakai. HTML.`,
-      kisikisi: `Buat Kisi-Kisi Soal ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Tabel: KD, indikator, level kognitif, bentuk soal, nomor soal. HTML.`,
-      rubrik: `Buat Rubrik Penilaian ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Tabel: kriteria, skor 1-4, deskripsi. HTML.`,
-      remedial: `Buat Program Remedial & Pengayaan ${info.name} kelas ${kelas}${topik ? ', topik: '+topik : ''}. Format: analisis, rencana remedial, rencana pengayaan. HTML.`
+      rpp: `Buat RPP/Modul Ajar Kurikulum Merdeka Fase D untuk ${info.name} ${t}. Format lengkap: identitas, capaian pembelajaran, tujuan, langkah pembelajaran, asesmen. HTML.`,
+      silabus: `Buat Silabus ${info.name} ${gradeInfo} Kurikulum Merdeka semester 1&2. Format: kompetensi inti, KD, materi pokok, alokasi waktu, sumber. HTML.`,
+      prota: `Buat Program Tahunan & Program Semester ${info.name} ${gradeInfo}. Format: tabel dengan kolom semester, bab, alokasi waktu, keterangan. HTML.`,
+      bahanajar: `Buat Bahan Ajar lengkap ${info.name} ${t}. Mencakup ringkasan materi, contoh soal, latihan. HTML.`,
+      lkpd: `Buat LKPD ${info.name} ${t}. Format: tujuan, petunjuk, langkah kerja, pertanyaan, kesimpulan. HTML.`,
+      media: `Beri 5 ide Media Pembelajaran kreatif untuk ${info.name} ${t}. Setiap ide: nama media, bahan, cara pakai. HTML.`,
+      kisikisi: `Buat Kisi-Kisi Soal ${info.name} ${t}. Tabel: KD, indikator, level kognitif, bentuk soal, nomor soal. HTML.`,
+      rubrik: `Buat Rubrik Penilaian ${info.name} ${t}. Tabel: kriteria, skor 1-4, deskripsi. HTML.`,
+      remedial: `Buat Program Remedial & Pengayaan ${info.name} ${t}. Format: analisis, rencana remedial, rencana pengayaan. HTML.`
     };
 
     try {
