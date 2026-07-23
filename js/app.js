@@ -84,120 +84,109 @@ const App = {
     return true;
   },
 
-  /** Halaman Pembuka — Manfaat & Fitur */
+  /** Halaman Pembuka — Buananet-style Dark Theme */
   showLanding() {
-    document.getElementById('btnBack').style.display = 'none';
-    document.getElementById('btnHome').style.display = 'none';
-    document.getElementById('headerUser').style.display = 'none';
-    document.getElementById('btnLogout').style.display = 'none';
+    document.body.classList.add('bn-body');
 
     const loggedIn = Auth.isLoggedIn();
     const user = Auth.currentUser();
+    const subjects = SUBJECTS || [];
+
+    // Build subject cards HTML
+    const subjectCards = subjects.map(s => `
+      <div class="bn-card" onclick="App.showSubject('${s.id}')">
+        <div class="bn-card-icon">${s.icon || '📖'}</div>
+        <div class="bn-card-info">
+          <div class="bn-card-name">${s.name}</div>
+          <div class="bn-card-desc">${s.desc || ''}</div>
+        </div>
+        <span class="bn-card-badge">K7–K9</span>
+      </div>
+    `).join('');
+
+    // Separate PAI and Umum
+    const paiIds = ['quranhadis','akidahakhlak','fikih','ski','bahasaarab'];
+    const umumIds = subjects.map(s=>s.id).filter(id=>!paiIds.includes(id));
+    const paiCards = subjects.filter(s=>paiIds.includes(s.id)).map(s=>`
+      <div class="bn-card" onclick="App.showSubject('${s.id}')">
+        <div class="bn-card-icon">${s.icon||'📖'}</div>
+        <div class="bn-card-info"><div class="bn-card-name">${s.name}</div><div class="bn-card-desc">${s.desc||''}</div></div>
+        <span class="bn-card-badge">K7–K9</span>
+      </div>`).join('');
+    const umumCards = subjects.filter(s=>!paiIds.includes(s.id)).map(s=>`
+      <div class="bn-card" onclick="App.showSubject('${s.id}')">
+        <div class="bn-card-icon">${s.icon||'📖'}</div>
+        <div class="bn-card-info"><div class="bn-card-name">${s.name}</div><div class="bn-card-desc">${s.desc||''}</div></div>
+        <span class="bn-card-badge">K7–K9</span>
+      </div>`).join('');
 
     const main = document.getElementById('mainContent');
     main.innerHTML = `
-      <div class="fade-in" style="max-width:900px;margin:0 auto;">
-
-        <!-- Hero -->
-        <div class="landing-hero">
-          <div class="landing-icon">🖥️</div>
-          <h2 class="landing-title">Media Interaktif SMP/MTs</h2>
-          <p class="landing-subtitle">Platform belajar interaktif lengkap untuk SMP/MTs<br>
-          sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
-          ${loggedIn ? `
-            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : user.role === 'admin' ? '🛡️ Admin' : '🎒 Siswa'})</p>
-            <div style="margin-top:16px;">
-              <button class="btn btn-primary btn-lg" onclick="${user.role === 'admin' ? 'AdminDashboard.showDashboard()' : 'App.showHome()'}" style="font-size:1.1rem;padding:14px 36px;">📚 ${user.role === 'admin' ? 'Dashboard Admin' : 'Lanjutkan Belajar'}</button>
-            </div>
-            <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">
-              <a href="#" onclick="App._doLogout();return false;" style="color:var(--red);">🚪 Keluar / Ganti Akun</a>
-            </p>
-          ` : `
-            <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-              <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar</button>
-              <button class="btn btn-secondary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Jelajahi Mapel</button>
-            </div>
-            <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a></p>
-          `}
-        </div>
-
-        <!-- Statistik Singkat -->
-        <div class="landing-stats">
-          <div class="landing-stat"><span class="landing-stat-num">15</span><span class="landing-stat-label">Mata Pelajaran</span></div>
-          <div class="landing-stat"><span class="landing-stat-num">27</span><span class="landing-stat-label">Bab Pelajaran</span></div>
-          <div class="landing-stat"><span class="landing-stat-num">13</span><span class="landing-stat-label">Jenis Latihan</span></div>
-          <div class="landing-stat"><span class="landing-stat-num">6</span><span class="landing-stat-label">Simulasi</span></div>
-        </div>
-
-        <!-- Manfaat -->
-        <h3 style="text-align:center;margin:32px 0 16px;color:var(--blue);">🌟 Mengapa Aplikasi Ini?</h3>
-        <div class="landing-benefits">
-          <div class="landing-benefit">
-            <div class="benefit-icon">📚</div>
-            <h4>15 Mapel Lengkap</h4>
-            <p>PAI & Umum: Informatika, Matematika, IPA, IPS, Bahasa, dan lainnya — semua dalam satu tempat.</p>
+      <!-- Hero -->
+      <div class="bn-hero">
+        <h1>Platform Belajar Interaktif Lengkap<br>untuk <strong>SMP/MTs Kurikulum Merdeka</strong></h1>
+        <p class="bn-hero-sub">Materi, kuis, simulasi, dan perangkat pembelajaran — semua mapel dalam satu tempat. Gratis.</p>
+        ${loggedIn ? `
+          <p style="color:#3fb950;font-weight:600;margin-bottom:12px;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role==='guru'?'👨‍🏫 Guru':user.role==='admin'?'🛡️ Admin':'🎒 Siswa'})</p>
+          <div class="bn-hero-btns">
+            <button class="bn-btn-fill" onclick="${user.role==='admin'?'AdminDashboard.showDashboard()':'App.showHome()'}">📚 ${user.role==='admin'?'Dashboard Admin':'Lanjutkan Belajar'}</button>
+            <button class="bn-btn-outline" onclick="App._doLogout()">🚪 Ganti Akun</button>
           </div>
-          <div class="landing-benefit">
-            <div class="benefit-icon">🎯</div>
-            <h4>Belajar Mandiri</h4>
-            <p>Materi per bab lengkap dengan kuis dan latihan. Siswa bisa belajar kapan saja sesuai ritme masing-masing.</p>
+        ` : `
+          <div class="bn-hero-btns">
+            <button class="bn-btn-fill" onclick="App.showLogin()">🚀 Mulai Belajar</button>
+            <button class="bn-btn-outline" onclick="App.showRegister()">📝 Daftar Gratis</button>
           </div>
-          <div class="landing-benefit">
-            <div class="benefit-icon">📊</div>
-            <h4>Pantau Progres</h4>
-            <p>Tracker otomatis mencatat bab yang sudah dibaca, skor kuis, dan memberikan badge pencapaian.</p>
-          </div>
-          <div class="landing-benefit">
-            <div class="benefit-icon">📱</div>
-            <h4>Akses di Mana Saja</h4>
-            <p>Buka di HP, tablet, atau laptop. Tidak perlu instal — cukup browser dan internet (atau offline).</p>
-          </div>
-          <div class="landing-benefit">
-            <div class="benefit-icon">🎮</div>
-            <h4>Belajar Sambil Bermain</h4>
-            <p>Puzzle kode, teka-teki silang, drag & drop, flashcards — belajar terasa seperti bermain game.</p>
-          </div>
-          <div class="landing-benefit">
-            <div class="benefit-icon">🆓</div>
-            <h4>Gratis Selamanya</h4>
-            <p>Tidak ada biaya berlangganan. Dibuat untuk mendukung pendidikan Indonesia.</p>
-          </div>
-        </div>
+          <p style="margin-top:10px;font-size:0.8rem;color:#8b949e;">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:#58a6ff;">Masuk di sini</a></p>
+        `}
+      </div>
 
-        <!-- Fitur Interaktif -->
-        <h3 style="text-align:center;margin:32px 0 16px;color:var(--green);">🛠️ Fitur Interaktif</h3>
-        <div class="landing-features">
-          <div class="landing-feature"><span>📝</span> Kuis Pilihan Ganda</div>
-          <div class="landing-feature"><span>✍️</span> Isian Singkat</div>
-          <div class="landing-feature"><span>✅</span> Benar / Salah</div>
-          <div class="landing-feature"><span>🃏</span> Flashcards</div>
-          <div class="landing-feature"><span>🧩</span> Drag & Drop</div>
-          <div class="landing-feature"><span>🧩</span> Puzzle Susun Kode</div>
-          <div class="landing-feature"><span>🔤</span> Teka-Teki Silang</div>
-          <div class="landing-feature"><span>🔢</span> Konversi Biner</div>
-          <div class="landing-feature"><span>⚡</span> Gerbang Logika</div>
-          <div class="landing-feature"><span>📊</span> Visualisasi Sorting</div>
-          <div class="landing-feature"><span>🔍</span> Algoritma Pencarian</div>
-          <div class="landing-feature"><span>🔐</span> Caesar Cipher</div>
-          <div class="landing-feature"><span>🌐</span> Simulasi Jaringan</div>
-          <div class="landing-feature"><span>🧮</span> Flowchart Builder</div>
-          <div class="landing-feature"><span>📋</span> Glosarium Multi-Mapel</div>
-          <div class="landing-feature"><span>🌙</span> Dark Mode</div>
-        </div>
+      <!-- Stats -->
+      <div class="bn-stats">
+        <div class="bn-stat"><span class="bn-stat-num">15</span><span class="bn-stat-label">Mata Pelajaran</span></div>
+        <div class="bn-stat"><span class="bn-stat-num">27</span><span class="bn-stat-label">Bab Pelajaran</span></div>
+        <div class="bn-stat"><span class="bn-stat-num">13+</span><span class="bn-stat-label">Jenis Latihan</span></div>
+        <div class="bn-stat"><span class="bn-stat-num">6</span><span class="bn-stat-label">Simulasi</span></div>
+      </div>
 
-        <!-- CTA Bawah -->
-        <div style="text-align:center;margin:36px 0 20px;">
-          ${loggedIn
-            ? `<button class="btn btn-primary btn-lg" onclick="${user.role === 'admin' ? 'AdminDashboard.showDashboard()' : 'App.showHome()'}" style="font-size:1.1rem;padding:14px 36px;">📚 ${user.role === 'admin' ? 'Dashboard Admin' : 'Lanjutkan Belajar'}</button>`
-            : `<button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>`
-          }
-        </div>
+      <!-- PAI Section -->
+      <div class="bn-section-hdr">🕌 Pendidikan Agama Islam</div>
+      <div class="bn-grid">${paiCards||''}</div>
 
-        <!-- Footer Mini -->
-        <div style="text-align:center;padding:16px 0;color:var(--gray-500);font-size:0.78rem;">
-          <p>© 2026 <strong>Hasnawi Latip</strong> — Media Pembelajaran Interaktif SMP/MTs</p>
-          <p>Kurikulum Merdeka Fase D | 100% Gratis</p>
-        </div>
+      <!-- Umum Section -->
+      <div class="bn-section-hdr">📖 Mata Pelajaran Umum</div>
+      <div class="bn-grid">${umumCards||''}</div>
+
+      <!-- Footer -->
+      <div class="bn-footer">
+        <p>📋 <a href="#" onclick="App.showAllFeatures();return false;">Semua Fitur Interaktif</a> · <a href="#" onclick="App.showGlossary();return false;">Glosarium</a> · <a href="#" onclick="App.showAbout();return false;">Tentang</a></p>
+        <p style="margin-top:12px;">© 2026 <strong style="color:#c9d1d9;">Hasnawi Latip</strong> — Media Pembelajaran Interaktif SMP/MTs</p>
+        <p>Kurikulum Merdeka Fase D | 100% Gratis | Powered by <a href="https://pages.github.com/">GitHub Pages</a></p>
+      </div>
+    `;
+
+    // Update header for landing style
+    const hdr = document.querySelector('.main-header');
+    if (hdr) {
+      hdr.innerHTML = `
+        <div class="bn-nav">
+          <a class="bn-nav-logo" href="#" onclick="App.showLanding();return false;">🖥️ Media Interaktif</a>
+          <ul class="bn-nav-links">
+            <li><a href="#" onclick="App.showLanding();return false;">HOME</a></li>
+            <li><a href="#" onclick="App.showHome();return false;">MAPEL</a></li>
+            <li><a href="#" onclick="App.showAbout();return false;">TENTANG</a></li>
+          </ul>
+          <div class="bn-nav-btns">
+            ${loggedIn
+              ? `<span style="color:#8b949e;font-size:0.8rem;margin-right:8px;">${user.displayName||user.email}</span><button class="bn-btn-outline" onclick="App._doLogout()">Keluar</button>`
+              : `<button class="bn-btn-outline" onclick="App.showLogin()">Masuk</button><button class="bn-btn-fill" onclick="App.showRegister()">Daftar</button>`
+            }
+          </div>
+        </div>`;
+    }
+
+    this.pushState({ view: 'landing' });
+  },
 
       </div>
     `;
@@ -216,6 +205,21 @@ const App = {
 
   /** Update header: tampilkan nama user + role + credits + admin button + tombol logout */
   _updateHeader() {
+    document.body.classList.remove('bn-body');
+    // Restore original header if landing page modified it
+    const hdr = document.querySelector('.main-header');
+    if (hdr && !document.getElementById('btnBack')) {
+      hdr.innerHTML = `
+        <button class="btn-back" id="btnBack" title="Kembali" style="display:none;">← Kembali</button>
+        <button class="btn-home" id="btnHome" title="Ke Halaman Utama" style="display:none;">🏠 Home</button>
+        <h1>🖥️ Media Interaktif SMP/MTs</h1>
+        <span class="header-sub">Kurikulum Merdeka — Semua Mapel</span>
+        <span id="headerUser" style="display:none;"></span>
+        <button class="btn-logout" id="btnLogout" title="Keluar" style="display:none;">🚪 Keluar</button>`;
+      document.getElementById('btnBack').addEventListener('click', () => this.goBack());
+      document.getElementById('btnHome').addEventListener('click', () => this._goHome());
+      document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
+    }
     const user = Auth.currentUser();
     const userEl = document.getElementById('headerUser');
     const logoutEl = document.getElementById('btnLogout');
@@ -249,6 +253,7 @@ const App = {
 
   /** Halaman Login */
   showLogin(returnUrl) {
+    document.body.classList.remove('bn-body');
     this._returnUrl = returnUrl || '';
     const main = document.getElementById('mainContent');
     main.innerHTML = `
@@ -318,6 +323,7 @@ const App = {
 
   /** Halaman Register */
   showRegister() {
+    document.body.classList.remove('bn-body');
     const main = document.getElementById('mainContent');
     main.innerHTML = `
       <div class="fade-in" style="max-width:420px;margin:0 auto;">
@@ -511,6 +517,7 @@ const App = {
 
   // ─── HOME — Pilih Mata Pelajaran ───
   showHome() {
+    document.body.classList.remove('bn-body');
     this._updateHeader();
     this.currentSubject = null;
     this.currentGrade = null;
@@ -553,6 +560,7 @@ const App = {
 
   // ─── SUBJECT — Pilih Kelas ───
   showSubject(subjectId) {
+    document.body.classList.remove('bn-body');
     this.currentSubject = subjectId;
     const info = this._getSubjectInfo(subjectId);
     const data = this._getData(subjectId);
@@ -1035,7 +1043,18 @@ const App = {
   },
 
   // ─── TENTANG / CREDITS ───
+  showGlossary() {
+    document.body.classList.remove('bn-body');
+    this._updateHeader();
+    if (typeof GlossaryEngine !== 'undefined') {
+      GlossaryEngine.init();
+      this.pushState({ view: 'glossary' });
+    }
+  },
+
   showAbout() {
+    document.body.classList.remove('bn-body');
+    this._updateHeader();
     const main = document.getElementById('mainContent');
     main.innerHTML = `
       <div class="fade-in" style="max-width:650px;margin:0 auto;">
