@@ -64,10 +64,9 @@ const Auth = {
 
   /** Cek apakah user sedang login */
   isLoggedIn() {
-    // Firebase
-    if (typeof FB !== 'undefined') {
-      const u = FB.auth.currentUser;
-      if (u) return true;
+    // Firebase — cek currentUser langsung
+    if (typeof FB !== 'undefined' && FB.auth && FB.auth.currentUser) {
+      return true;
     }
     // Fallback sessionStorage
     const session = sessionStorage.getItem(this.SESSION_KEY);

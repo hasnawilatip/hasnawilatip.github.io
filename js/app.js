@@ -35,7 +35,32 @@ const App = {
       return;
     }
 
-    // Cek login — admin ke dashboard, user lain ke home
+    // Tunggu Firebase Auth siap, lalu tentukan halaman
+    if (typeof FB !== 'undefined' && FB.auth) {
+      FB.auth.onAuthStateChanged(async (fbUser) => {
+        if (fbUser) {
+          const snap = await FB.db.ref('users/' + fbUser.uid).once('value');
+          const data = snap.val() || {};
+          sessionStorage.setItem('app_current_user', JSON.stringify({
+            email: fbUser.email, uid: fbUser.uid,
+            displayName: data.displayName || fbUser.displayName,
+            role: data.role || 'siswa', credits: data.credits || 0,
+            unlocked: data.unlocked || [], loginAt: new Date().toISOString()
+          }));
+          this._updateHeader();
+          if (data.role === 'admin') {
+            AdminDashboard.showDashboard();
+          } else {
+            this.showHome();
+          }
+        } else {
+          this.showLanding();
+        }
+      });
+      return;
+    }
+
+    // Fallback localStorage
     if (Auth.isLoggedIn()) {
       this._updateHeader();
       const user = Auth.currentUser();
