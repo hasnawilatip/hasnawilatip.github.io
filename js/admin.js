@@ -542,9 +542,11 @@ const AdminDashboard = {
         ${modelOptions ? `
         <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
           <h4 style="margin-bottom:10px;">🧩 Model</h4>
-          <select id="aiModelSelect" class="fill-input" style="text-align:left;" onchange="AdminDashboard._saveModel()">
+          <select id="aiModelSelect" class="fill-input" style="text-align:left;margin-bottom:6px;" onchange="AdminDashboard._saveModel()">
             ${modelOptions}
           </select>
+          <input type="text" id="aiModelCustom" class="fill-input" placeholder="Atau ketik model kustom (contoh: deepseek-v4-pro)..." value="${currentModel && !activeProv.models.includes(currentModel) ? currentModel : ''}" style="text-align:left;font-size:0.85rem;" onchange="AdminDashboard._saveModel()">
+          <span style="font-size:0.7rem;color:var(--gray-500);">Ketik manual jika model belum ada di daftar</span>
         </div>` : ''}
 
         <div class="flex-center mt-3">
@@ -556,7 +558,10 @@ const AdminDashboard = {
   },
 
   _saveModel() {
-    const model = document.getElementById('aiModelSelect')?.value;
+    // Baca dari custom input dulu, fallback ke dropdown
+    const custom = document.getElementById('aiModelCustom')?.value?.trim();
+    const select = document.getElementById('aiModelSelect')?.value;
+    const model = custom || select;
     if (model) AIAgent.setModel(AIAgent.getActiveProvider(), model);
   },
 

@@ -11,7 +11,7 @@ const AIAgent = {
       name: 'DeepSeek', icon: '🔍',
       baseURL: 'https://api.deepseek.com/v1/chat/completions',
       model: 'deepseek-chat',
-      models: ['deepseek-chat', 'deepseek-reasoner'],
+      models: ['deepseek-chat', 'deepseek-reasoner', 'deepseek-chat-v3', 'deepseek-r1'],
       authHeader: (key) => ({ 'Authorization': `Bearer ${key}` }),
       parseResponse: (data) => data.choices?.[0]?.message?.content,
       parseError: (data) => data.error?.message,
