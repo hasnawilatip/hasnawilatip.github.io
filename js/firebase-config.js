@@ -1,138 +1,91 @@
 /* ══════════════════════════════════════════════════════════
-   FIREBASE CONFIG — Database & Auth untuk
+   FIREBASE CONFIG — Realtime Database + Auth
    Media Interaktif SMP/MTs
-   (CDN version, no npm needed)
    ══════════════════════════════════════════════════════════ */
 
-const FBConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyBMpZmG9kXdzX7kPNiuGDodKz7AXx1ze3k",
   authDomain: "media-interaktif-aa4e2.firebaseapp.com",
   projectId: "media-interaktif-aa4e2",
   storageBucket: "media-interaktif-aa4e2.firebasestorage.app",
   messagingSenderId: "192645447775",
-  appId: "1:192645447775:web:a90acf962430f4ac7c1bea"
-};
-
-// Initialize Firebase (CDN version)
-firebase.initializeApp(FBConfig);
+  appId: "1:192645447775:web:a90acf962430f4ac7c1bea",
+  databaseURL: "https://media-interaktif-aa4e2-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 
 const FB = {
   auth: firebase.auth(),
-  db: firebase.firestore(),
+  db: firebase.database(),
 
-  /** Register dengan email + password */
   async register(email, password, displayName, role) {
     try {
       const cred = await this.auth.createUserWithEmailAndPassword(email, password);
       await cred.user.updateProfile({ displayName });
-      // Simpan data tambahan ke Firestore
-      await this.db.collection('users').doc(cred.user.uid).set({
+      await this.db.ref('users/' + cred.user.uid).set({
         email, displayName, role: role || 'siswa',
         credits: role === 'admin' ? 999 : 5,
-        unlocked: [],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        unlocked: [''], createdAt: new Date().toISOString()
       });
       return { success: true, message: 'Registrasi berhasil! Dapat 5 kredit gratis.' };
-    } catch (e) {
-      return { success: false, message: this._errorMsg(e) };
-    }
+    } catch (e) { return { success: false, message: this._err(e) }; }
   },
 
-  /** Login */
   async login(email, password) {
     try {
       const cred = await this.auth.signInWithEmailAndPassword(email, password);
-      const doc = await this.db.collection('users').doc(cred.user.uid).get();
-      const data = doc.data() || {};
-      return {
-        success: true,
-        user: {
-          uid: cred.user.uid,
-          email: cred.user.email,
-          displayName: data.displayName || cred.user.displayName,
-          role: data.role || 'siswa',
-          credits: data.credits || 0,
-          unlocked: data.unlocked || []
-        }
-      };
-    } catch (e) {
-      return { success: false, message: this._errorMsg(e) };
-    }
+      const snap = await this.db.ref('users/' + cred.user.uid).once('value');
+      const data = snap.val() || {};
+      return { success: true, user: {
+        uid: cred.user.uid, email: cred.user.email,
+        displayName: data.displayName || cred.user.displayName,
+        role: data.role || 'siswa', credits: data.credits || 0,
+        unlocked: data.unlocked || []
+      }};
+    } catch (e) { return { success: false, message: this._err(e) }; }
   },
 
-  /** Logout */
-  async logout() {
-    await this.auth.signOut();
-  },
+  async logout() { await this.auth.signOut(); },
 
-  /** Ambil data user saat ini */
-  currentUser() {
-    const u = this.auth.currentUser;
-    if (!u) return null;
-    return u;
-  },
-
-  /** Update credits */
-  async addCredits(uid, amount) {
-    const ref = this.db.collection('users').doc(uid);
-    await this.db.runTransaction(async (t) => {
-      const doc = await t.get(ref);
-      const current = (doc.data()?.credits || 0) + amount;
-      t.update(ref, { credits: current });
-    });
-  },
-
-  /** Unlock konten */
   async unlockContent(uid, subjectId, gradeKey, chapterId, cost) {
-    const ref = this.db.collection('users').doc(uid);
-    const key = `${subjectId}|${gradeKey}|${chapterId}`;
-    return this.db.runTransaction(async (t) => {
-      const doc = await t.get(ref);
-      const data = doc.data() || {};
-      const credits = data.credits || 0;
-      const unlocked = data.unlocked || [];
-      if (unlocked.includes(key)) return { success: true, message: 'Sudah terbuka', alreadyUnlocked: true };
-      if (credits < cost) throw new Error(`Kredit tidak cukup. Butuh ${cost}, punya ${credits}`);
-      t.update(ref, { credits: credits - cost, unlocked: [...unlocked, key] });
-      return { success: true, credits: credits - cost };
-    });
+    const ref = this.db.ref('users/' + uid);
+    const snap = await ref.once('value');
+    const data = snap.val() || {};
+    const credits = data.credits || 0;
+    const unlocked = data.unlocked || [];
+    const key = subjectId + '|' + gradeKey + '|' + chapterId;
+    if (unlocked.includes(key)) return { success: true, alreadyUnlocked: true };
+    if (credits < cost) throw new Error('Kredit tidak cukup. Butuh ' + cost + ', punya ' + credits);
+    unlocked.push(key);
+    await ref.update({ credits: credits - cost, unlocked });
+    return { success: true, credits: credits - cost };
   },
 
-  /** Simpan konten */
   async saveContent(subjectId, data) {
-    await this.db.collection('content').doc(subjectId).set({
-      data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    await this.db.ref('content/' + subjectId).set(data);
   },
 
-  /** Ambil konten */
   async getContent(subjectId) {
-    const doc = await this.db.collection('content').doc(subjectId).get();
-    return doc.exists ? doc.data().data : null;
+    const snap = await this.db.ref('content/' + subjectId).once('value');
+    return snap.val();
   },
 
-  /** Simpan progres */
   async saveProgress(uid, progress) {
-    await this.db.collection('progress').doc(uid).set({
-      data: progress,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await this.db.ref('progress/' + uid).set(progress);
   },
 
-  /** Ambil progres */
   async getProgress(uid) {
-    const doc = await this.db.collection('progress').doc(uid).get();
-    return doc.exists ? doc.data().data : null;
+    const snap = await this.db.ref('progress/' + uid).once('value');
+    return snap.val();
   },
 
-  _errorMsg(e) {
-    switch (e.code) {
-      case 'auth/email-already-in-use': return 'Email sudah terdaftar.';
-      case 'auth/invalid-email': return 'Format email tidak valid.';
-      case 'auth/weak-password': return 'Password minimal 6 karakter.';
-      case 'auth/user-not-found': return 'Email tidak ditemukan.';
-      case 'auth/wrong-password': return 'Password salah.';
-      default: return e.message;
-    }
+  _err(e) {
+    const m = {
+      'auth/email-already-in-use': 'Email sudah terdaftar.',
+      'auth/invalid-email': 'Format email tidak valid.',
+      'auth/weak-password': 'Password minimal 6 karakter.',
+      'auth/user-not-found': 'Email tidak ditemukan.',
+      'auth/wrong-password': 'Password salah.'
+    };
+    return m[e.code] || e.message;
   }
 };
