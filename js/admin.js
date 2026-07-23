@@ -543,14 +543,19 @@ const AdminDashboard = {
         </div>
 
         <!-- Database -->
-        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;border-left:5px solid var(--green);">
           <h4 style="margin-bottom:10px;">📊 Google Sheets Database</h4>
           <p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:8px;">
-            Masukkan URL Google Apps Script. Biarkan kosong untuk pakai localStorage (offline).
+            Masukkan URL Google Apps Script untuk <b>sinkronisasi data antar perangkat</b>.<br>
+            Biarkan kosong untuk pakai localStorage (offline, perangkat sendiri).
           </p>
-          <input type="text" id="sheetsUrl" class="fill-input" placeholder="https://script.google.com/macros/s/xxx/exec" value="${SheetsDB.getUrl().replace('YOUR_SCRIPT_ID','') || ''}" style="text-align:left;margin-bottom:8px;">
-          <button class="btn btn-sm btn-primary" onclick="AdminDashboard._saveSheetsUrl()">💾 Simpan URL</button>
-          <span id="sheetsMsg" style="font-size:0.8rem;margin-left:8px;">${SheetsDB.isConfigured() ? '✅ Terhubung' : '⚠️ Pakai localStorage'}</span>
+          <input type="text" id="sheetsUrl" class="fill-input" placeholder="https://script.google.com/macros/s/xxx/exec" value="${typeof SheetsDB !== 'undefined' ? SheetsDB.getUrl().replace('YOUR_SCRIPT_ID','') : ''}" style="text-align:left;margin-bottom:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-sm btn-primary" onclick="AdminDashboard._saveSheetsUrl()">💾 Simpan URL</button>
+            <button class="btn btn-sm btn-success" onclick="AdminDashboard._testSheetsConnection()">🔌 Tes Koneksi</button>
+            <span id="sheetsMsg" style="font-size:0.8rem;">${typeof SheetsDB !== 'undefined' && SheetsDB.isConfigured() ? '✅ Terhubung' : '⚠️ Pakai localStorage'}</span>
+          </div>
+          <div id="sheetsTestResult" style="margin-top:8px;font-size:0.8rem;"></div>
         </div>
 
         <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
@@ -614,6 +619,24 @@ const AdminDashboard = {
       localStorage.removeItem('admin_sheets_url');
       const el = document.getElementById('sheetsMsg');
       if (el) el.textContent = '⚠️ Pakai localStorage';
+    }
+  },
+
+  async _testSheetsConnection() {
+    const resultEl = document.getElementById('sheetsTestResult');
+    if (!resultEl) return;
+    resultEl.innerHTML = '<span style="color:var(--blue);">⏳ Menghubungi Sheets...</span>';
+
+    if (!SheetsDB.isConfigured()) {
+      resultEl.innerHTML = '<span style="color:var(--red);">❌ URL Sheets belum diatur.</span>';
+      return;
+    }
+
+    try {
+      const result = await SheetsDB._call('getUsers', {});
+      resultEl.innerHTML = `<span style="color:var(--green);">✅ Koneksi berhasil! ${Object.keys(result).length} user di database.</span>`;
+    } catch (err) {
+      resultEl.innerHTML = `<span style="color:var(--red);">❌ Gagal: ${err.message}</span>`;
     }
   },
 
