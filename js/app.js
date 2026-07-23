@@ -41,6 +41,9 @@ const App = {
     document.getElementById('headerUser').style.display = 'none';
     document.getElementById('btnLogout').style.display = 'none';
 
+    const loggedIn = Auth.isLoggedIn();
+    const user = Auth.currentUser();
+
     const main = document.getElementById('mainContent');
     main.innerHTML = `
       <div class="fade-in" style="max-width:900px;margin:0 auto;">
@@ -51,10 +54,20 @@ const App = {
           <h2 class="landing-title">Media Interaktif MTs</h2>
           <p class="landing-subtitle">Platform belajar interaktif lengkap untuk Madrasah Tsanawiyah<br>
           sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
-          <div style="margin-top:20px;">
-            <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
-          </div>
-          <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a></p>
+          ${loggedIn ? `
+            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong></p>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Lanjutkan Belajar</button>
+            </div>
+            <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">
+              <a href="#" onclick="App._doLogout();return false;" style="color:var(--red);">🚪 Keluar / Ganti Akun</a>
+            </p>
+          ` : `
+            <div style="margin-top:20px;">
+              <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
+            </div>
+            <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a></p>
+          `}
         </div>
 
         <!-- Statistik Singkat -->
@@ -123,7 +136,10 @@ const App = {
 
         <!-- CTA Bawah -->
         <div style="text-align:center;margin:36px 0 20px;">
-          <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
+          ${loggedIn
+            ? `<button class="btn btn-primary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Lanjutkan Belajar</button>`
+            : `<button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>`
+          }
         </div>
 
         <!-- Footer Mini -->
@@ -137,10 +153,9 @@ const App = {
     this.history = [{ view: 'landing' }];
   },
 
-  /** Tombol Home dengan auth guard */
+  /** Tombol Home → kembali ke Landing Page */
   _goHome() {
-    if (!this._requireAuth()) return;
-    this.showHome();
+    this.showLanding();
   },
 
   /** Update header: tampilkan nama user + tombol logout */
