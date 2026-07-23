@@ -448,20 +448,21 @@ const App = {
   },
 
   goBack() {
-    if (!this._requireAuth()) return;
-    if (this.history.length <= 1) { this.showHome(); return; }
+    // Tidak perlu auth untuk navigasi publik (landing ↔ subject)
+    if (this.history.length <= 1) { this.showLanding(); return; }
     this.history.pop();
     const prev = this.history[this.history.length - 1];
     if (!prev) { this.showHome(); return; }
 
-    // Landing page tidak bisa di-back (redirect ke home jika sudah login)
-    if (prev.view === 'landing') { this.showHome(); return; }
+    // Landing page → kembali ke landing (homepage baru)
+    if (prev.view === 'landing') { this.showLanding(); return; }
 
     this.currentSubject = prev.subjectId || null;
     this.currentGrade = prev.grade || null;
 
     switch (prev.view) {
       case 'home': this.showHome(); break;
+      case 'landing': this.showLanding(); break;
       case 'subject': this.showSubject(prev.subjectId); break;
       case 'grade': this.showChapters(prev.subjectId, prev.grade); break;
       case 'chapter': this.showChapter(prev.subjectId, prev.grade, prev.chapterId); break;
