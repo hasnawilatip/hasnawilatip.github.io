@@ -633,11 +633,12 @@ const AdminDashboard = {
       const result = await AIAgent._callAPI(system, user);
 
       // Simpan ke Firebase
+      const typeLabels = { rpp:'RPP/Modul Ajar', silabus:'Silabus', prota:'Prota/Promes', bahanajar:'Bahan Ajar', lkpd:'LKPD', media:'Media', kisikisi:'Kisi-Kisi', rubrik:'Rubrik', remedial:'Remedial' };
       if (typeof FB !== 'undefined') {
-        const key = `${subjectId}_${gradeKey}_${type}`;
+        const key = `${subjectId}_${kelasVal}_${type}_${Date.now()}`;
         await FB.db.ref('perangkat/' + key).set({
-          subjectId, gradeKey, type,
-          title: labels[type], topic: chapterTitle,
+          subjectId, gradeKey: kelasVal, type,
+          title: typeLabels[type] || type, topic: topik || 'Semua Bab',
           content: result, createdAt: new Date().toISOString()
         });
       }
