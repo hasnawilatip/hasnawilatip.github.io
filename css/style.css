@@ -1016,6 +1016,97 @@ body.dark-mode .flow-tool { background: #1e1e2e; }
 body.dark-mode .flashcard-front { background: linear-gradient(135deg, #2a1a2e, #1a1a3a); }
 body.dark-mode .flashcard-back { background: linear-gradient(135deg, #1a2e1e, #0a2a1a); }
 
+/* ═══════════════ LANDING PAGE ═══════════════ */
+.landing-hero {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+}
+.landing-icon { font-size: 4rem; margin-bottom: 12px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+.landing-title { font-size: 2rem; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #1A56DB, #8B008B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.landing-subtitle { color: var(--gray-700); font-size: 1rem; max-width: 550px; margin: 0 auto; line-height: 1.6; }
+.btn-lg { padding: 14px 36px !important; font-size: 1.1rem !important; border-radius: 30px !important; }
+
+/* Stats */
+.landing-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.landing-stat {
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    padding: 20px 12px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+.landing-stat-num {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue);
+}
+.landing-stat-label { font-size: 0.8rem; color: var(--gray-500); display: block; margin-top: 4px; }
+
+/* Benefits */
+.landing-benefits {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+.landing-benefit {
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    padding: 24px 18px;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    transition: var(--transition);
+    border-top: 4px solid transparent;
+}
+.landing-benefit:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.landing-benefit:nth-child(1) { border-top-color: var(--blue); }
+.landing-benefit:nth-child(2) { border-top-color: var(--green); }
+.landing-benefit:nth-child(3) { border-top-color: var(--purple); }
+.landing-benefit:nth-child(4) { border-top-color: var(--orange); }
+.landing-benefit:nth-child(5) { border-top-color: #E91E63; }
+.landing-benefit:nth-child(6) { border-top-color: #00BCD4; }
+.benefit-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.landing-benefit h4 { font-size: 1rem; margin-bottom: 6px; color: var(--gray-900); }
+.landing-benefit p { font-size: 0.85rem; color: var(--gray-700); line-height: 1.5; }
+
+/* Features Grid */
+.landing-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+.landing-feature {
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+.landing-feature:hover { background: var(--blue-light); }
+.landing-feature span { font-size: 1.2rem; }
+
+/* Dark mode landing */
+body.dark-mode .landing-hero,
+body.dark-mode .landing-stat,
+body.dark-mode .landing-benefit,
+body.dark-mode .landing-feature { background: #1e1e2e; }
+body.dark-mode .landing-title { -webkit-text-fill-color: #7eb8ff; }
+
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE: MOBILE & TABLET OPTIMIZATION
    ══════════════════════════════════════════════════════════ */
@@ -1372,4 +1463,16 @@ body.dark-mode .flashcard-back { background: linear-gradient(135deg, #1a2e1e, #0
     padding: 8px 10px;
     font-size: 0.82rem;
   }
+
+  /* --- LANDING --- */
+  .landing-hero { padding: 24px 14px; }
+  .landing-icon { font-size: 3rem; }
+  .landing-title { font-size: 1.4rem; }
+  .landing-subtitle { font-size: 0.82rem; }
+  .landing-stats { grid-template-columns: repeat(2, 1fr); }
+  .landing-stat-num { font-size: 1.5rem; }
+  .landing-benefits { grid-template-columns: 1fr; }
+  .landing-features { grid-template-columns: repeat(2, 1fr); }
+  .landing-feature { font-size: 0.75rem; padding: 10px; }
+  .btn-lg { padding: 12px 24px !important; font-size: 0.95rem !important; }
 }

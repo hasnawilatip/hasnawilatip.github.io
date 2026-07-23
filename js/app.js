@@ -20,7 +20,7 @@ const App = {
       this._updateHeader();
       this.showHome();
     } else {
-      this.showLogin();
+      this.showLanding();
     }
   },
 
@@ -32,6 +32,109 @@ const App = {
     }
     this._updateHeader();
     return true;
+  },
+
+  /** Halaman Pembuka — Manfaat & Fitur */
+  showLanding() {
+    document.getElementById('btnBack').style.display = 'none';
+    document.getElementById('btnHome').style.display = 'none';
+    document.getElementById('headerUser').style.display = 'none';
+    document.getElementById('btnLogout').style.display = 'none';
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:900px;margin:0 auto;">
+
+        <!-- Hero -->
+        <div class="landing-hero">
+          <div class="landing-icon">🖥️</div>
+          <h2 class="landing-title">Media Interaktif MTs</h2>
+          <p class="landing-subtitle">Platform belajar interaktif lengkap untuk Madrasah Tsanawiyah<br>
+          sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
+          <div style="margin-top:20px;">
+            <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
+          </div>
+          <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">Sudah punya akun? <a href="#" onclick="App.showLogin();return false;" style="color:var(--blue);font-weight:600;">Masuk di sini</a></p>
+        </div>
+
+        <!-- Statistik Singkat -->
+        <div class="landing-stats">
+          <div class="landing-stat"><span class="landing-stat-num">15</span><span class="landing-stat-label">Mata Pelajaran</span></div>
+          <div class="landing-stat"><span class="landing-stat-num">27</span><span class="landing-stat-label">Bab Pelajaran</span></div>
+          <div class="landing-stat"><span class="landing-stat-num">13</span><span class="landing-stat-label">Jenis Latihan</span></div>
+          <div class="landing-stat"><span class="landing-stat-num">6</span><span class="landing-stat-label">Simulasi</span></div>
+        </div>
+
+        <!-- Manfaat -->
+        <h3 style="text-align:center;margin:32px 0 16px;color:var(--blue);">🌟 Mengapa Aplikasi Ini?</h3>
+        <div class="landing-benefits">
+          <div class="landing-benefit">
+            <div class="benefit-icon">📚</div>
+            <h4>15 Mapel Lengkap</h4>
+            <p>PAI & Umum: Informatika, Matematika, IPA, IPS, Bahasa, dan lainnya — semua dalam satu tempat.</p>
+          </div>
+          <div class="landing-benefit">
+            <div class="benefit-icon">🎯</div>
+            <h4>Belajar Mandiri</h4>
+            <p>Materi per bab lengkap dengan kuis dan latihan. Siswa bisa belajar kapan saja sesuai ritme masing-masing.</p>
+          </div>
+          <div class="landing-benefit">
+            <div class="benefit-icon">📊</div>
+            <h4>Pantau Progres</h4>
+            <p>Tracker otomatis mencatat bab yang sudah dibaca, skor kuis, dan memberikan badge pencapaian.</p>
+          </div>
+          <div class="landing-benefit">
+            <div class="benefit-icon">📱</div>
+            <h4>Akses di Mana Saja</h4>
+            <p>Buka di HP, tablet, atau laptop. Tidak perlu instal — cukup browser dan internet (atau offline).</p>
+          </div>
+          <div class="landing-benefit">
+            <div class="benefit-icon">🎮</div>
+            <h4>Belajar Sambil Bermain</h4>
+            <p>Puzzle kode, teka-teki silang, drag & drop, flashcards — belajar terasa seperti bermain game.</p>
+          </div>
+          <div class="landing-benefit">
+            <div class="benefit-icon">🆓</div>
+            <h4>Gratis Selamanya</h4>
+            <p>Tidak ada biaya berlangganan. Dibuat untuk mendukung pendidikan Indonesia.</p>
+          </div>
+        </div>
+
+        <!-- Fitur Interaktif -->
+        <h3 style="text-align:center;margin:32px 0 16px;color:var(--green);">🛠️ Fitur Interaktif</h3>
+        <div class="landing-features">
+          <div class="landing-feature"><span>📝</span> Kuis Pilihan Ganda</div>
+          <div class="landing-feature"><span>✍️</span> Isian Singkat</div>
+          <div class="landing-feature"><span>✅</span> Benar / Salah</div>
+          <div class="landing-feature"><span>🃏</span> Flashcards</div>
+          <div class="landing-feature"><span>🧩</span> Drag & Drop</div>
+          <div class="landing-feature"><span>🧩</span> Puzzle Susun Kode</div>
+          <div class="landing-feature"><span>🔤</span> Teka-Teki Silang</div>
+          <div class="landing-feature"><span>🔢</span> Konversi Biner</div>
+          <div class="landing-feature"><span>⚡</span> Gerbang Logika</div>
+          <div class="landing-feature"><span>📊</span> Visualisasi Sorting</div>
+          <div class="landing-feature"><span>🔍</span> Algoritma Pencarian</div>
+          <div class="landing-feature"><span>🔐</span> Caesar Cipher</div>
+          <div class="landing-feature"><span>🌐</span> Simulasi Jaringan</div>
+          <div class="landing-feature"><span>🧮</span> Flowchart Builder</div>
+          <div class="landing-feature"><span>📋</span> Glosarium Multi-Mapel</div>
+          <div class="landing-feature"><span>🌙</span> Dark Mode</div>
+        </div>
+
+        <!-- CTA Bawah -->
+        <div style="text-align:center;margin:36px 0 20px;">
+          <button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>
+        </div>
+
+        <!-- Footer Mini -->
+        <div style="text-align:center;padding:16px 0;color:var(--gray-500);font-size:0.78rem;">
+          <p>© 2026 <strong>Hasnawi Latip</strong> — Media Pembelajaran Interaktif MTs</p>
+          <p>Kurikulum Merdeka Fase D | 100% Gratis</p>
+        </div>
+
+      </div>
+    `;
+    this.history = [{ view: 'landing' }];
   },
 
   /** Tombol Home dengan auth guard */
@@ -218,6 +321,9 @@ const App = {
     this.history.pop();
     const prev = this.history[this.history.length - 1];
     if (!prev) { this.showHome(); return; }
+
+    // Landing page tidak bisa di-back (redirect ke home jika sudah login)
+    if (prev.view === 'landing') { this.showHome(); return; }
 
     this.currentSubject = prev.subjectId || null;
     this.currentGrade = prev.grade || null;
