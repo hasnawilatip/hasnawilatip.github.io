@@ -11,7 +11,7 @@ const App = {
   init() {
     this.history = [];
     document.getElementById('btnBack').addEventListener('click', () => this.goBack());
-    document.getElementById('btnHome').addEventListener('click', () => this.showHome());
+    document.getElementById('btnHome').addEventListener('click', () => this._goHome());
     document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
     DarkMode.init();
 
@@ -22,6 +22,22 @@ const App = {
     } else {
       this.showLogin();
     }
+  },
+
+  /** Auth guard — redirect ke login jika belum login */
+  _requireAuth() {
+    if (!Auth.isLoggedIn()) {
+      this.showLogin();
+      return false;
+    }
+    this._updateHeader();
+    return true;
+  },
+
+  /** Tombol Home dengan auth guard */
+  _goHome() {
+    if (!this._requireAuth()) return;
+    this.showHome();
   },
 
   /** Update header: tampilkan nama user + tombol logout */
@@ -197,6 +213,7 @@ const App = {
   },
 
   goBack() {
+    if (!this._requireAuth()) return;
     if (this.history.length <= 1) { this.showHome(); return; }
     this.history.pop();
     const prev = this.history[this.history.length - 1];
@@ -238,6 +255,7 @@ const App = {
 
   // ─── HOME — Pilih Mata Pelajaran ───
   showHome() {
+    if (!this._requireAuth()) return;
     this._updateHeader();
     this.currentSubject = null;
     this.currentGrade = null;
