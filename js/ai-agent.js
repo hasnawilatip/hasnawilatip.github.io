@@ -58,33 +58,57 @@ const AIAgent = {
   hasKey() { return !!this.getApiKey(this.getActiveProvider()); },
   resetAll() { localStorage.removeItem(this.SETTINGS_KEY); },
 
-  async _callAPI(systemPrompt, userPrompt) {
+  async _callAPI(systemPrompt, userPrompt, retries = 3) {
     const pid = this.getActiveProvider();
     const p = this.PROVIDERS[pid];
     if (!p) throw new Error('Provider tidak dikenal.');
     const apiKey = this.getApiKey(pid);
     if (!apiKey) throw new Error(`API Key ${p.name} belum diatur.`);
-    const model = this.getModel(pid);
+    let model = this.getModel(pid);
+    let lastError = null;
 
-    if (p._isGemini) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const r = await fetch(url, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 4096 } })
-      });
-      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(p.parseError(e) || `HTTP ${r.status}`); }
-      const d = await r.json(); const t = p.parseResponse(d);
-      if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`); return t;
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        if (p._isGemini) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const r = await fetch(url, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 4096 } })
+          });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(p.parseError(e) || `HTTP ${r.status}`); }
+          const d = await r.json(); const t = p.parseResponse(d);
+          if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`);
+          return t;
+        }
+
+        const r = await fetch(p.baseURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...p.authHeader(apiKey) },
+          body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.7, max_tokens: 4096 })
+        });
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          const msg = p.parseError(e) || `HTTP ${r.status}`;
+          // Jika rate limited, tunggu sebentar
+          if (r.status === 429) { await new Promise(r => setTimeout(r, (attempt + 1) * 2000)); throw new Error(msg); }
+          throw new Error(msg);
+        }
+        const d = await r.json(); const t = p.parseResponse(d);
+        if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`);
+        return t;
+      } catch (err) {
+        lastError = err;
+        // Coba model alternatif pada percobaan terakhir
+        if (attempt === retries - 2 && p.models && p.models.length > 1) {
+          const alt = p.models.find(m => m !== model) || p.models[1];
+          if (alt) model = alt;
+        }
+        if (attempt < retries - 1) {
+          await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+        }
+      }
     }
-
-    const r = await fetch(p.baseURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...p.authHeader(apiKey) },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.7, max_tokens: 4096 })
-    });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(p.parseError(e) || `HTTP ${r.status}`); }
-    const d = await r.json(); const t = p.parseResponse(d);
-    if (!t) throw new Error(`${p.name} tidak menghasilkan konten.`); return t;
+    throw new Error(lastError?.message || `${p.name} gagal setelah ${retries}x percobaan.`);
   },
 
   async testConnection() {
@@ -112,6 +136,21 @@ Format output HARUS HTML langsung (tanpa <!DOCTYPE>, <html>, <head>, <body>):
     );
   },
 
+  /** Helper: ekstrak JSON dari response AI */
+  _extractJSON(raw) {
+    let c = raw.replace(/```(?:json)?\s*\n?/gi, '').replace(/```\s*\n?/g, '').trim();
+    // Cari array JSON terluar
+    const m = c.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('Format JSON tidak valid. Coba ulang.');
+    try {
+      return JSON.parse(m[0]);
+    } catch (e) {
+      // Coba bersihkan trailing comma & karakter non-JSON
+      const cleaned = m[0].replace(/,\s*([\]}])/g, '$1').replace(/[\x00-\x1F\x7F]/g, '');
+      return JSON.parse(cleaned);
+    }
+  },
+
   async generateQuiz(subjectName, gradeLabel, chapterTitle, count = 5) {
     const r = await this._callAPI(
       `Output HARUS JSON array valid tanpa teks lain.`,
@@ -119,10 +158,7 @@ Format output HARUS HTML langsung (tanpa <!DOCTYPE>, <html>, <head>, <body>):
 JSON: [{"q":"soal","opts":["A","B","C","D"],"ans":0}]
 Variasi kesulitan, jawaban tersebar.`
     );
-    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const m = c.match(/\[[\s\S]*\]/);
-    if (!m) throw new Error('Format tidak valid. Coba ulang.');
-    return JSON.parse(m[0]);
+    return this._extractJSON(r);
   },
 
   async generateFillBlank(subjectName, gradeLabel, chapterTitle, count = 5) {
@@ -131,8 +167,7 @@ Variasi kesulitan, jawaban tersebar.`
       `${count} SOAL ISIAN SINGKAT "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
 JSON: [{"q":"soal dengan ___","answers":["jwb1","jwb2"]}]`
     );
-    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
+    return this._extractJSON(r);
   },
 
   async generateTrueFalse(subjectName, gradeLabel, chapterTitle, count = 10) {
@@ -141,8 +176,7 @@ JSON: [{"q":"soal dengan ___","answers":["jwb1","jwb2"]}]`
       `${count} SOAL BENAR/SALAH "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
 JSON: [{"q":"pernyataan","ans":true}] Seimbang benar/salah.`
     );
-    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
+    return this._extractJSON(r);
   },
 
   async generateFlashcards(subjectName, gradeLabel, chapterTitle, count = 8) {
@@ -151,8 +185,7 @@ JSON: [{"q":"pernyataan","ans":true}] Seimbang benar/salah.`
       `${count} FLASHCARD "${subjectName}" kelas ${gradeLabel}, Bab: "${chapterTitle}".
 JSON: [{"term":"istilah","def":"definisi singkat"}]`
     );
-    const c = r.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
-    const m = c.match(/\[[\s\S]*\]/); if (!m) throw new Error('Format tidak valid.'); return JSON.parse(m[0]);
+    return this._extractJSON(r);
   },
 
   /** Cari daftar bab sesuai Kurikulum Merdeka */
