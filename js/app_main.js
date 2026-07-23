@@ -93,8 +93,6 @@ const App = {
 
   /** Halaman Pembuka — Buananet-style Dark Theme */
   showLanding() {
-    document.body.classList.add('bn-body');
-
     const loggedIn = Auth.isLoggedIn();
     const user = Auth.currentUser();
     const subjects = SUBJECTS || [];
@@ -193,7 +191,6 @@ const App = {
 
   /** Update header: tampilkan nama user + role + credits + admin button + tombol logout */
   _updateHeader() {
-    document.body.classList.remove('bn-body');
     // Restore original header if landing page modified it
     const hdr = document.querySelector('.main-header');
     if (hdr && !document.getElementById('btnBack')) {
@@ -241,7 +238,6 @@ const App = {
 
   /** Halaman Login */
   showLogin(returnUrl) {
-    document.body.classList.remove('bn-body');
     this._returnUrl = returnUrl || '';
     const main = document.getElementById('mainContent');
     main.innerHTML = `
@@ -311,7 +307,6 @@ const App = {
 
   /** Halaman Register */
   showRegister() {
-    document.body.classList.remove('bn-body');
     const main = document.getElementById('mainContent');
     main.innerHTML = `
       <div class="fade-in" style="max-width:420px;margin:0 auto;">
@@ -507,7 +502,6 @@ const App = {
 
   // ─── HOME — Pilih Mata Pelajaran ───
   showHome() {
-    document.body.classList.remove('bn-body');
     this._updateHeader();
     this.currentSubject = null;
     this.currentGrade = null;
@@ -550,7 +544,6 @@ const App = {
 
   // ─── SUBJECT — Pilih Kelas ───
   showSubject(subjectId) {
-    document.body.classList.remove('bn-body');
     this.currentSubject = subjectId;
     const info = this._getSubjectInfo(subjectId);
     const data = this._getData(subjectId);
@@ -1034,7 +1027,6 @@ const App = {
 
   // ─── TENTANG / CREDITS ───
   showGlossary() {
-    document.body.classList.remove('bn-body');
     this._updateHeader();
     if (typeof GlossaryEngine !== 'undefined') {
       GlossaryEngine.init();
@@ -1043,7 +1035,6 @@ const App = {
   },
 
   showAbout() {
-    document.body.classList.remove('bn-body');
     this._updateHeader();
     const main = document.getElementById('mainContent');
     main.innerHTML = `

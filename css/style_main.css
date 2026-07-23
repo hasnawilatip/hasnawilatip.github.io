@@ -3,30 +3,30 @@
    ══════════════════════════════════════════════════════════ */
 
 :root {
-    --blue: #1A56DB;
-    --blue-light: #E8F0FE;
-    --blue-dark: #0F3B9E;
-    --green: #0D8C24;
-    --green-light: #E6F4EA;
-    --green-dark: #0A6B1B;
-    --purple: #8B008B;
-    --purple-light: #F3E8F3;
-    --purple-dark: #6A006A;
-    --orange: #E67E22;
-    --orange-light: #FFF3CD;
-    --red: #C0392B;
-    --red-light: #FCE4E4;
-    --gray-50: #F8F9FA;
-    --gray-100: #F1F3F5;
-    --gray-200: #E9ECEF;
-    --gray-300: #DEE2E6;
-    --gray-500: #ADB5BD;
-    --gray-700: #495057;
-    --gray-900: #212529;
-    --white: #FFFFFF;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-    --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+    --blue: #58a6ff;
+    --blue-light: #1a2744;
+    --blue-dark: #79c0ff;
+    --green: #3fb950;
+    --green-light: #0d1b14;
+    --green-dark: #56d364;
+    --purple: #bc8cff;
+    --purple-light: #1e1728;
+    --purple-dark: #d2a8ff;
+    --orange: #d29922;
+    --orange-light: #2d2400;
+    --red: #f85149;
+    --red-light: #2d1215;
+    --gray-50: #0d1117;
+    --gray-100: #0d1117;
+    --gray-200: #21262d;
+    --gray-300: #30363d;
+    --gray-500: #8b949e;
+    --gray-700: #c9d1d9;
+    --gray-900: #f0f6fc;
+    --white: #161b22;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.6);
     --radius: 12px;
     --radius-sm: 8px;
     --transition: 0.25s ease;
@@ -50,8 +50,8 @@ button, .btn, .btn-sm, .btn-back, .btn-home, .btn-tf, .btn-dark-toggle,
 
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--gray-100);
-    color: var(--gray-900);
+    background: #0d1117;
+    color: #c9d1d9;
     line-height: 1.6;
     min-height: 100vh;
     display: flex;
@@ -60,14 +60,14 @@ body {
 
 /* ═══════════════ HEADER ═══════════════ */
 .main-header {
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    color: var(--white);
+    background: #161b22;
+    color: #f0f6fc;
+    border-bottom: 1px solid #30363d;
     padding: 14px 24px;
     display: flex;
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
-    box-shadow: var(--shadow-md);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -76,9 +76,9 @@ body {
 .header-sub { font-size: 0.8rem; opacity: 0.75; margin-left: auto; }
 
 .btn-back {
-    background: rgba(255,255,255,0.15);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.25);
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
     padding: 8px 14px;
     border-radius: 20px;
     cursor: pointer;
@@ -86,12 +86,12 @@ body {
     font-weight: 600;
     transition: var(--transition);
 }
-.btn-back:hover { background: rgba(255,255,255,0.25); }
+.btn-back:hover { background: #30363d; }
 
 .btn-home {
-    background: rgba(255,255,255,0.15);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.25);
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
     padding: 8px 14px;
     border-radius: 20px;
     cursor: pointer;
@@ -100,12 +100,12 @@ body {
     transition: var(--transition);
     margin-left: 4px;
 }
-.btn-home:hover { background: rgba(255,255,255,0.25); }
+.btn-home:hover { background: #30363d; }
 
 .btn-logout {
-    background: rgba(255,255,255,0.1);
-    color: #ffaaaa;
-    border: 1px solid rgba(255,150,150,0.3);
+    background: #21262d;
+    color: #f85149;
+    border: 1px solid #30363d;
     padding: 8px 14px;
     border-radius: 20px;
     cursor: pointer;
@@ -114,7 +114,7 @@ body {
     transition: var(--transition);
     margin-left: auto;
 }
-.btn-logout:hover { background: rgba(200,50,50,0.3); color: #ff6666; }
+.btn-logout:hover { background: #2d1215; }
 
 #headerUser {
     color: rgba(255,255,255,0.9);
