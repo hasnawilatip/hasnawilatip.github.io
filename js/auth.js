@@ -56,6 +56,7 @@ const Auth = {
       return {
         username: session.username,
         displayName: user.displayName || session.username,
+        role: user.role || 'siswa',
         createdAt: user.createdAt
       };
     } catch (e) {
@@ -64,7 +65,7 @@ const Auth = {
   },
 
   /** Register user baru */
-  register(username, password, displayName) {
+  register(username, password, displayName, role) {
     // Validasi
     if (!username || username.trim().length < 3) {
       return { success: false, message: 'Username minimal 3 karakter.' };
@@ -74,6 +75,9 @@ const Auth = {
     }
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       return { success: false, message: 'Username hanya boleh huruf, angka, dan underscore.' };
+    }
+    if (!role || !['guru','siswa'].includes(role)) {
+      return { success: false, message: 'Pilih status: Guru atau Siswa.' };
     }
 
     const users = this._getUsers();
@@ -86,6 +90,7 @@ const Auth = {
     users[key] = {
       passwordHash: this._hash(password),
       displayName: displayName || username.trim(),
+      role: role,
       createdAt: new Date().toISOString()
     };
 

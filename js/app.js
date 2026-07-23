@@ -55,7 +55,7 @@ const App = {
           <p class="landing-subtitle">Platform belajar interaktif lengkap untuk Madrasah Tsanawiyah<br>
           sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
           ${loggedIn ? `
-            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong></p>
+            <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : '🎒 Siswa'})</p>
             <div style="margin-top:16px;">
               <button class="btn btn-primary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Lanjutkan Belajar</button>
             </div>
@@ -158,13 +158,14 @@ const App = {
     this.showLanding();
   },
 
-  /** Update header: tampilkan nama user + tombol logout */
+  /** Update header: tampilkan nama user + role + tombol logout */
   _updateHeader() {
     const user = Auth.currentUser();
     const userEl = document.getElementById('headerUser');
     const logoutEl = document.getElementById('btnLogout');
     if (user) {
-      userEl.textContent = '👤 ' + user.displayName;
+      const roleIcon = user.role === 'guru' ? '👨‍🏫' : '🎒';
+      userEl.textContent = roleIcon + ' ' + user.displayName;
       userEl.style.display = 'inline';
       logoutEl.style.display = 'inline-block';
     } else {
@@ -267,7 +268,19 @@ const App = {
           <input type="text" id="regUser" class="fill-input" placeholder="Min. 3 karakter" autocomplete="username" style="margin-bottom:14px;text-align:left;">
 
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Password</label>
-          <input type="password" id="regPass" class="fill-input" placeholder="Min. 4 karakter" autocomplete="new-password" style="margin-bottom:20px;text-align:left;">
+          <input type="password" id="regPass" class="fill-input" placeholder="Min. 4 karakter" autocomplete="new-password" style="margin-bottom:14px;text-align:left;">
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Status</label>
+          <div style="display:flex;gap:10px;margin-bottom:20px;">
+            <label class="role-label">
+              <input type="radio" name="role" value="siswa" checked style="accent-color:var(--blue);">
+              <span>🎒 <b>Siswa</b></span>
+            </label>
+            <label class="role-label">
+              <input type="radio" name="role" value="guru" style="accent-color:var(--green);">
+              <span>👨‍🏫 <b>Guru</b></span>
+            </label>
+          </div>
 
           <button type="submit" class="btn btn-success" style="width:100%;" onclick="App._handleRegister()">✅ Daftar</button>
         </form>
@@ -294,9 +307,10 @@ const App = {
     const name = document.getElementById('regName').value.trim();
     const username = document.getElementById('regUser').value;
     const password = document.getElementById('regPass').value;
+    const role = document.querySelector('input[name="role"]:checked')?.value || 'siswa';
     const msgEl = document.getElementById('authMsg');
 
-    const result = Auth.register(username, password, name);
+    const result = Auth.register(username, password, name, role);
     if (result.success) {
       msgEl.innerHTML = `<div class="info-box" style="background:var(--green-light);border-left-color:var(--green);"><b>Berhasil!</b> ${result.message}</div>`;
       // Auto-redirect ke login setelah 1.5 detik
