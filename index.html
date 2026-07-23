@@ -81,6 +81,14 @@
     (function(){
       var s = document.createElement('script');
       s.src = 'js/app.js?v=' + Date.now();
+      s.onload = function(){
+        // Fallback: kalau Firebase auth lambat, paksa tampil landing setelah 3 detik
+        setTimeout(function(){
+          if (typeof App !== 'undefined' && App.history && App.history.length === 0) {
+            App.showLanding();
+          }
+        }, 3000);
+      };
       document.body.appendChild(s);
     })();
     </script>
