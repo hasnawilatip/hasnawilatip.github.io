@@ -158,14 +158,17 @@ const App = {
     this.showLanding();
   },
 
-  /** Update header: tampilkan nama user + role + tombol logout */
+  /** Update header: tampilkan nama user + role + admin button + tombol logout */
   _updateHeader() {
     const user = Auth.currentUser();
     const userEl = document.getElementById('headerUser');
     const logoutEl = document.getElementById('btnLogout');
     if (user) {
-      const roleIcon = user.role === 'guru' ? '👨‍🏫' : '🎒';
-      userEl.textContent = roleIcon + ' ' + user.displayName;
+      const roleIcon = user.role === 'admin' ? '🛡️' : user.role === 'guru' ? '👨‍🏫' : '🎒';
+      userEl.innerHTML = roleIcon + ' ' + user.displayName;
+      if (user.role === 'admin') {
+        userEl.innerHTML += ' <button class="btn btn-sm btn-secondary" onclick="AdminDashboard.showDashboard()" style="margin-left:8px;font-size:0.7rem;padding:3px 10px;">🛡️ Admin</button>';
+      }
       userEl.style.display = 'inline';
       logoutEl.style.display = 'inline-block';
     } else {
@@ -280,6 +283,15 @@ const App = {
               <input type="radio" name="role" value="guru" style="accent-color:var(--green);">
               <span>👨‍🏫 <b>Guru</b></span>
             </label>
+            <label class="role-label">
+              <input type="radio" name="role" value="admin" style="accent-color:var(--purple);">
+              <span>🛡️ <b>Admin</b></span>
+            </label>
+          </div>
+
+          <div id="adminCodeBox" style="display:none;margin-bottom:14px;">
+            <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Kode Admin</label>
+            <input type="password" id="regAdminCode" class="fill-input" placeholder="Masukkan kode admin" style="text-align:left;">
           </div>
 
           <button type="submit" class="btn btn-success" style="width:100%;" onclick="App._handleRegister()">✅ Daftar</button>
@@ -295,6 +307,13 @@ const App = {
     document.getElementById('btnBack').style.display = 'none';
     document.getElementById('btnHome').style.display = 'none';
 
+    // Toggle admin code box
+    document.querySelectorAll('input[name="role"]').forEach(r => {
+      r.addEventListener('change', () => {
+        document.getElementById('adminCodeBox').style.display = r.value === 'admin' ? 'block' : 'none';
+      });
+    });
+
     document.getElementById('regPass').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._handleRegister();
     });
@@ -308,9 +327,10 @@ const App = {
     const username = document.getElementById('regUser').value;
     const password = document.getElementById('regPass').value;
     const role = document.querySelector('input[name="role"]:checked')?.value || 'siswa';
+    const adminCode = document.getElementById('regAdminCode')?.value || '';
     const msgEl = document.getElementById('authMsg');
 
-    const result = Auth.register(username, password, name, role);
+    const result = Auth.register(username, password, name, role, adminCode);
     if (result.success) {
       msgEl.innerHTML = `<div class="info-box" style="background:var(--green-light);border-left-color:var(--green);"><b>Berhasil!</b> ${result.message}</div>`;
       // Auto-redirect ke login setelah 1.5 detik
@@ -337,6 +357,10 @@ const App = {
     // Halaman publik: sembunyikan Back & Home
     if (state.view === 'home' || state.view === 'login' || state.view === 'register' || state.view === 'landing') {
       btnBack.style.display = 'none';
+      btnHome.style.display = 'none';
+    } else if (state.view && state.view.startsWith('admin')) {
+      // Admin pages: tampilkan Back, sembunyikan Home
+      btnBack.style.display = 'inline-block';
       btnHome.style.display = 'none';
     } else {
       btnBack.style.display = 'inline-block';
@@ -380,6 +404,13 @@ const App = {
       case 'about': this.showAbout(); break;
       case 'login': this.showLogin(); break;
       case 'register': this.showRegister(); break;
+      case 'admin': AdminDashboard.showDashboard(); break;
+      case 'admin-content': AdminDashboard.showContentEditor(); break;
+      case 'admin-edit-subject': AdminDashboard.editSubject(prev.subjectId); break;
+      case 'admin-edit-chapter': AdminDashboard.editChapter(prev.subjectId, prev.gradeKey || prev.grade, prev.chapterId); break;
+      case 'admin-users': AdminDashboard.showUserManager(); break;
+      case 'admin-export': AdminDashboard.showExportImport(); break;
+      case 'admin-stats': AdminDashboard.showGlobalStats(); break;
       case 'allfeatures': this.showAllFeatures(); break;
       case 'quickpick': this.showAllFeatures(); break;
       case 'launchpick': this.showAllFeatures(); break;

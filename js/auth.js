@@ -65,7 +65,7 @@ const Auth = {
   },
 
   /** Register user baru */
-  register(username, password, displayName, role) {
+  register(username, password, displayName, role, adminCode) {
     // Validasi
     if (!username || username.trim().length < 3) {
       return { success: false, message: 'Username minimal 3 karakter.' };
@@ -76,8 +76,12 @@ const Auth = {
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       return { success: false, message: 'Username hanya boleh huruf, angka, dan underscore.' };
     }
-    if (!role || !['guru','siswa'].includes(role)) {
+    if (!role || !['guru','siswa','admin'].includes(role)) {
       return { success: false, message: 'Pilih status: Guru atau Siswa.' };
+    }
+    // Admin hanya bisa daftar dengan kode rahasia
+    if (role === 'admin' && adminCode !== 'mtsadmin2026') {
+      return { success: false, message: 'Kode admin tidak valid.' };
     }
 
     const users = this._getUsers();
