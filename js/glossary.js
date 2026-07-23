@@ -58,9 +58,6 @@ const GlossaryEngine = {
     this.filteredTerms = [...this.terms].sort((a, b) => a.term.localeCompare(b.term));
     this.render();
   },
-    this.filteredTerms = [...this.terms].sort((a, b) => a.term.localeCompare(b.term));
-    this.render();
-  },
 
   render(query = '') {
     const main = document.getElementById('mainContent');
