@@ -99,28 +99,14 @@ const App = {
     const user = Auth.currentUser();
     const subjects = SUBJECTS || [];
 
-    // Build subject cards HTML
-    const subjectCards = subjects.map(s => `
-      <div class="bn-card" onclick="App.showSubject('${s.id}')">
-        <div class="bn-card-icon">${s.icon || '📖'}</div>
-        <div class="bn-card-info">
-          <div class="bn-card-name">${s.name}</div>
-          <div class="bn-card-desc">${s.desc || ''}</div>
-        </div>
-        <span class="bn-card-badge">K7–K9</span>
-      </div>
-    `).join('');
-
-    // Separate PAI and Umum
-    const paiIds = ['quranhadis','akidahakhlak','fikih','ski','bahasaarab'];
-    const umumIds = subjects.map(s=>s.id).filter(id=>!paiIds.includes(id));
-    const paiCards = subjects.filter(s=>paiIds.includes(s.id)).map(s=>`
+    // Separate PAI and Umum — gunakan group dari SUBJECTS
+    const paiCards = subjects.filter(s => s.group === 'PAI').map(s => `
       <div class="bn-card" onclick="App.showSubject('${s.id}')">
         <div class="bn-card-icon">${s.icon||'📖'}</div>
         <div class="bn-card-info"><div class="bn-card-name">${s.name}</div><div class="bn-card-desc">${s.desc||''}</div></div>
         <span class="bn-card-badge">K7–K9</span>
       </div>`).join('');
-    const umumCards = subjects.filter(s=>!paiIds.includes(s.id)).map(s=>`
+    const umumCards = subjects.filter(s => s.group !== 'PAI').map(s => `
       <div class="bn-card" onclick="App.showSubject('${s.id}')">
         <div class="bn-card-icon">${s.icon||'📖'}</div>
         <div class="bn-card-info"><div class="bn-card-name">${s.name}</div><div class="bn-card-desc">${s.desc||''}</div></div>
