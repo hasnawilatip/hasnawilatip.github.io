@@ -51,7 +51,7 @@ const App = {
         <!-- Hero -->
         <div class="landing-hero">
           <div class="landing-icon">🖥️</div>
-          <h2 class="landing-title">Media Interaktif MTs</h2>
+          <h2 class="landing-title">Media Interaktif SMP/MTs</h2>
           <p class="landing-subtitle">Platform belajar interaktif lengkap untuk Madrasah Tsanawiyah<br>
           sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
           ${loggedIn ? `
@@ -197,7 +197,7 @@ const App = {
       <div class="fade-in" style="max-width:420px;margin:0 auto;">
         <div style="text-align:center;margin-bottom:24px;">
           <div style="font-size:3rem;margin-bottom:8px;">🖥️</div>
-          <h2 style="margin-bottom:4px;">Media Interaktif MTs</h2>
+          <h2 style="margin-bottom:4px;">Media Interaktif SMP/MTs</h2>
           <p style="color:var(--gray-500);">Masuk untuk melanjutkan belajar</p>
         </div>
 
@@ -801,7 +801,7 @@ const App = {
 
         <div style="background:var(--card-bg);border-radius:12px;padding:24px;margin-top:20px;box-shadow:var(--shadow-sm);text-align:center;">
           <div style="font-size:3rem;margin-bottom:12px;">🖥️</div>
-          <h3 style="margin-bottom:8px;">Media Interaktif MTs</h3>
+          <h3 style="margin-bottom:8px;">Media Interaktif SMP/MTs</h3>
           <p style="color:var(--gray-700);margin-bottom:20px;">
             Platform belajar interaktif untuk siswa Madrasah Tsanawiyah (MTs)<br>
             dengan 15 mata pelajaran sesuai Kurikulum Merdeka Fase D.<br>

@@ -1,4 +1,4 @@
-# 🖥️ Media Interaktif MTs
+# 🖥️ Media Interaktif SMP/MTs
 
 **Platform belajar interaktif untuk Madrasah Tsanawiyah (MTs) — Kurikulum Merdeka Fase D**
 
