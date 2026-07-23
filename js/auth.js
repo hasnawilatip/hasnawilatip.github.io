@@ -18,7 +18,19 @@ const Auth = {
     return 'h_' + Math.abs(hash).toString(36) + '_' + str.length.toString(36);
   },
 
-  /** Auto-create default admin jika belum ada user */
+  /** Test apakah localStorage & sessionStorage berfungsi */
+  testStorage() {
+    const testKey = '__storage_test__';
+    try {
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      sessionStorage.setItem(testKey, '1');
+      sessionStorage.removeItem(testKey);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
   ensureDefaultAdmin() {
     const users = this._getUsers();
     // Cek apakah sudah ada admin

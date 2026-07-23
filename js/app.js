@@ -15,6 +15,26 @@ const App = {
     document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
     DarkMode.init();
 
+    // Cek storage — jika rusak, tampilkan peringatan
+    const storageCheck = Auth.testStorage();
+    if (!storageCheck.ok) {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="fade-in" style="max-width:500px;margin:40px auto;text-align:center;">
+          <div style="font-size:3rem;">⚠️</div>
+          <h2>Storage Tidak Tersedia</h2>
+          <p style="color:var(--gray-700);margin:12px 0;">Browser Anda tidak mengizinkan penyimpanan data (localStorage/sessionStorage).</p>
+          <p style="font-size:0.85rem;color:var(--gray-500);">Penyebab umum:</p>
+          <ul style="text-align:left;display:inline-block;font-size:0.85rem;color:var(--gray-700);">
+            <li>Mode private/incognito di beberapa browser</li>
+            <li>Membuka file HTML langsung (file://) — solusi: gunakan <b>Live Server</b> atau <b>GitHub Pages</b></li>
+            <li>Storage browser penuh</li>
+          </ul>
+          <p style="margin-top:12px;font-size:0.8rem;color:var(--gray-500);">Error: ${storageCheck.error}</p>
+        </div>
+      `;
+      return;
+    }
+
     // Auto-create default admin jika belum ada
     Auth.ensureDefaultAdmin();
 
