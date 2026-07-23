@@ -69,6 +69,25 @@ const AdminDashboard = {
     const users = Auth._getUsers();
     const userCount = Object.keys(users).length;
 
+    // Build daftar konten per mapel
+    let contentOverview = '';
+    SUBJECTS.forEach(s => {
+      const data = App._getData(s.id);
+      let totalChapters = 0, filledChapters = 0;
+      ['k7','k8','k9'].forEach(gk => {
+        const grade = data[gk];
+        if (grade && grade.chapters) {
+          grade.chapters.forEach(ch => {
+            totalChapters++;
+            if ((ch.content && ch.content.length > 100) || (ch.quiz && ch.quiz.length > 0)) filledChapters++;
+          });
+        }
+      });
+      const pct = totalChapters > 0 ? Math.round((filledChapters / totalChapters) * 100) : 0;
+      const barColor = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--orange)' : 'var(--gray-300)';
+      contentOverview += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-200);"><span style="width:24px;">${s.icon}</span><span style="flex:1;font-size:0.85rem;font-weight:600;cursor:pointer;color:var(--blue);" onclick="AdminDashboard.editSubject('${s.id}')">${s.name}</span><span style="font-size:0.75rem;color:var(--gray-500);min-width:50px;">${filledChapters}/${totalChapters}</span><div style="width:80px;background:var(--gray-200);height:6px;border-radius:3px;"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div></div><span style="font-size:0.7rem;color:var(--gray-500);min-width:30px;">${pct}%</span></div>`;
+    });
+
     main.innerHTML = `
       <div class="fade-in" style="max-width:950px;margin:0 auto;">
         <div class="section-header">
@@ -94,6 +113,13 @@ const AdminDashboard = {
             <span class="landing-stat-num">📦</span>
             <span class="landing-stat-label">Export/Import</span>
           </div>
+        </div>
+
+        <!-- Konten Overview -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">📋 Daftar Konten Per Mapel</h4>
+          ${contentOverview}
+          <div style="font-size:0.7rem;color:var(--gray-500);margin-top:6px;">Klik nama mapel untuk edit · Progress bar: hijau ≥80%, oranye ≥40%</div>
         </div>
 
         <!-- Menu Admin -->
