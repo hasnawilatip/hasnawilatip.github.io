@@ -33,12 +33,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+    <script>
+    // Firebase config (inline - no cache)
+    firebase.initializeApp({apiKey:"AIzaSyBMpZmG9kXdzX7kPNiuGDodKz7AXx1ze3k",authDomain:"media-interaktif-aa4e2.firebaseapp.com",projectId:"media-interaktif-aa4e2",storageBucket:"media-interaktif-aa4e2.firebasestorage.app",messagingSenderId:"192645447775",appId:"1:192645447775:web:a90acf962430f4ac7c1bea",databaseURL:"https://media-interaktif-aa4e2-default-rtdb.asia-southeast1.firebasedatabase.app"});
+    const FB={auth:firebase.auth(),db:firebase.database(),async register(e,p,n,r){try{const c=await this.auth.createUserWithEmailAndPassword(e,p);await c.user.updateProfile({displayName:n});await this.db.ref('users/'+c.user.uid).set({email:e,displayName:n,role:r||'siswa',credits:r==='admin'?999:5,unlocked:[''],createdAt:new Date().toISOString()});return{success:true,message:'Registrasi berhasil!'}}catch(e){return{success:false,message:this._err(e)}}},async login(e,p){try{const c=await this.auth.signInWithEmailAndPassword(e,p);const s=await this.db.ref('users/'+c.user.uid).once('value');const d=s.val()||{};return{success:true,user:{uid:c.user.uid,email:c.user.email,displayName:d.displayName||c.user.displayName,role:d.role||'siswa',credits:d.credits||0,unlocked:d.unlocked||[]}}}catch(e){return{success:false,message:this._err(e)}}},async logout(){await this.auth.signOut()},async unlockContent(u,s,g,c,co){const r=this.db.ref('users/'+u);const sn=await r.once('value');const d=sn.val()||{};const cr=d.credits||0;const un=d.unlocked||[];const k=s+'|'+g+'|'+c;if(un.includes(k))return{success:true,alreadyUnlocked:true};if(cr<co)throw new Error('Kredit kurang. Butuh '+co+', punya '+cr);un.push(k);await r.update({credits:cr-co,unlocked:un});return{success:true,credits:cr-co}},async saveContent(s,d){await this.db.ref('content/'+s).set(d)},async getContent(s){const sn=await this.db.ref('content/'+s).once('value');return sn.val()},async saveProgress(u,p){await this.db.ref('progress/'+u).set(p)},async getProgress(u){const sn=await this.db.ref('progress/'+u).once('value');return sn.val()},_err(e){const m={'auth/email-already-in-use':'Email sudah terdaftar.','auth/invalid-email':'Email tidak valid.','auth/weak-password':'Password minimal 6 karakter.','auth/user-not-found':'Email tidak ditemukan.','auth/wrong-password':'Password salah.'};return m[e.code]||e.message}};
+    </script>
     <!-- Registry & Core -->
     <script src="js/subjects.js"></script>
     <script src="js/darkmode.js"></script>
-    <script src="js/firebase-config.js?v=3"></script>
-    <script src="js/auth.js?v=3"></script>
+    <script src="js/auth.js?v=4"></script>
     <script src="js/progress.js"></script>
 
     <!-- Data per Mata Pelajaran -->
