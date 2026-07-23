@@ -437,6 +437,7 @@ const App = {
     this.history.push(state);
     const btnBack = document.getElementById('btnBack');
     const btnHome = document.getElementById('btnHome');
+    if (!btnBack || !btnHome) return; // landing page doesn't have these
     // Halaman publik: sembunyikan Back & Home
     if (state.view === 'home' || state.view === 'login' || state.view === 'register' || state.view === 'landing') {
       btnBack.style.display = 'none';
