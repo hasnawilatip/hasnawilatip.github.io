@@ -31,22 +31,6 @@ const Auth = {
       return { ok: false, error: e.message };
     }
   },
-  ensureDefaultAdmin() {
-    const users = this._getUsers();
-    // Cek apakah sudah ada admin
-    const hasAdmin = Object.values(users).some(u => u.role === 'admin');
-    if (!hasAdmin) {
-      users['admin'] = {
-        passwordHash: this._hash('admin123'),
-        displayName: 'Administrator',
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      };
-      this._saveUsers(users);
-      return { username: 'admin', password: 'admin123' };
-    }
-    return null;
-  },
 
   /** Ambil semua user dari localStorage */
   _getUsers() {
@@ -142,7 +126,7 @@ const Auth = {
     if (!role || !['guru','siswa','admin'].includes(role)) {
       return { success: false, message: 'Pilih status: Guru atau Siswa.' };
     }
-    if (role === 'admin' && adminCode !== 'mtsadmin2026') {
+    if (role === 'admin' && adminCode !== 'mts4dm1n!2026#Secure') {
       return { success: false, message: 'Kode admin tidak valid.' };
     }
 
