@@ -34,6 +34,20 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Touch-friendly: hilangkan tap highlight & 300ms delay */
+a, button, [role="button"], .grade-card, .chapter-card, .puzzle-slot, .puzzle-block,
+.cw-cell, .dd-draggable, .dd-droppable, .flashcard-wrapper, .glossary-letter {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Pastikan target sentuh minimal 44px (WCAG) */
+button, .btn, .btn-sm, .btn-back, .btn-home, .btn-tf, .btn-dark-toggle,
+.quiz-option, .content-tab, .flow-tool, .glossary-letter, .puzzle-block {
+    min-height: 44px;
+    min-width: 44px;
+}
+
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--gray-100);
@@ -978,3 +992,357 @@ body.dark-mode .enc-textarea { background: #252536; color: #ddd; border-color: #
 body.dark-mode .flow-tool { background: #1e1e2e; }
 body.dark-mode .flashcard-front { background: linear-gradient(135deg, #2a1a2e, #1a1a3a); }
 body.dark-mode .flashcard-back { background: linear-gradient(135deg, #1a2e1e, #0a2a1a); }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE: MOBILE & TABLET OPTIMIZATION
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤768px) ── */
+@media (max-width: 768px) {
+
+  /* --- HEADER --- */
+  .main-header {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+  .main-header h1 {
+    font-size: 1rem;
+    width: 100%;
+    order: -1;
+  }
+  .header-sub {
+    display: none;
+  }
+  .btn-back, .btn-home {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    border-radius: 16px;
+  }
+
+  /* --- MAIN CONTENT --- */
+  main {
+    padding: 14px 10px;
+  }
+
+  /* --- HOME --- */
+  .home-title { font-size: 1.3rem; }
+  .home-subtitle { font-size: 0.85rem; margin-bottom: 20px; }
+
+  /* --- GRADE CARDS (Mapel & Kelas) --- */
+  .grade-cards {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .grade-card {
+    padding: 20px 14px;
+  }
+  .grade-card .grade-icon { font-size: 2.2rem; }
+  .grade-card .grade-number { font-size: 1.5rem; }
+  .grade-card .grade-desc { font-size: 0.78rem; }
+
+  /* --- CHAPTER CARDS --- */
+  .chapter-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .chapter-card {
+    padding: 12px 14px;
+  }
+  .chapter-title { font-size: 0.88rem; }
+
+  /* --- SECTION HEADER --- */
+  .section-header h2 { font-size: 1.2rem; }
+
+  /* --- CONTENT VIEW --- */
+  .content-view {
+    padding: 16px 14px;
+    border-radius: var(--radius-sm);
+  }
+  .content-view h2 { font-size: 1.15rem; }
+  .content-view h3 { font-size: 1rem; }
+  .content-view p, .content-view li { font-size: 0.9rem; }
+  .content-view ul, .content-view ol { margin-left: 16px; }
+
+  /* --- TABS --- */
+  .content-tabs { gap: 2px; }
+  .content-tab {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* --- TABLES → horizontal scroll --- */
+  table.simple-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.8rem;
+  }
+  table.simple-table th,
+  table.simple-table td {
+    padding: 6px 8px;
+  }
+
+  /* --- QUIZ --- */
+  .quiz-question {
+    padding: 16px 12px;
+  }
+  .quiz-question h3 { font-size: 0.95rem; }
+  .quiz-option {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+  }
+  .quiz-score .score-circle {
+    width: 100px;
+    height: 100px;
+    font-size: 2rem;
+  }
+
+  /* --- BUTTONS --- */
+  .btn {
+    padding: 8px 18px;
+    font-size: 0.82rem;
+  }
+  .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+
+  /* --- DRAG & DROP --- */
+  .dd-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .dd-item { font-size: 0.82rem; padding: 8px 10px; }
+  .dd-draggable { min-height: 40px; display: flex; align-items: center; justify-content: center; }
+
+  /* --- SIMULATION --- */
+  .sim-container {
+    padding: 16px 12px;
+  }
+  .sim-input {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+  .sim-row { flex-direction: column; align-items: stretch; }
+  .sim-row label { min-width: auto; }
+
+  /* --- LOGIC GATES --- */
+  .gate-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .gate-card { padding: 10px; }
+
+  /* --- ENCRYPTION --- */
+  .enc-io {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .enc-textarea { height: 80px; font-size: 0.85rem; }
+
+  /* --- FLASHCARDS --- */
+  .flashcard-wrapper {
+    height: 200px;
+    max-width: 100%;
+  }
+  .flashcard-text { font-size: 1rem; }
+  .flashcard-front, .flashcard-back { padding: 16px; }
+
+  /* --- TRUE / FALSE --- */
+  .tf-statement { font-size: 0.95rem; padding: 14px; }
+  .btn-tf {
+    padding: 12px 24px;
+    font-size: 1rem;
+    min-width: 110px;
+  }
+
+  /* --- FILL IN THE BLANK --- */
+  .fill-input {
+    font-size: 1rem;
+    padding: 12px 14px;
+  }
+
+  /* --- CODE PUZZLE --- */
+  .puzzle-slot { font-size: 0.8rem; padding: 8px 10px; min-height: 36px; }
+  .puzzle-block { font-size: 0.78rem; padding: 6px 12px; }
+
+  /* --- CROSSWORD --- */
+  .cw-cell { font-size: 0.8rem; }
+  .cw-clue { font-size: 0.78rem; }
+
+  /* --- NETWORK SIM --- */
+  .network-canvas { height: 180px; }
+  .net-node { min-width: 70px; padding: 8px; font-size: 0.75rem; }
+  .net-icon { font-size: 1.3rem; }
+
+  /* --- FLOWCHART --- */
+  .flow-canvas { height: 300px; }
+  .flow-tool {
+    padding: 6px 8px;
+    font-size: 0.62rem;
+    min-width: 48px;
+  }
+
+  /* --- GLOSSARY --- */
+  .glossary-input {
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    max-width: 100%;
+  }
+  .glossary-alpha {
+    flex-wrap: wrap;
+    gap: 1px;
+  }
+  .glossary-letter {
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    font-size: 0.7rem;
+  }
+  .glossary-term { padding: 8px 10px; }
+  .glossary-term-name { font-size: 0.82rem; }
+  .glossary-term-def { font-size: 0.78rem; }
+
+  /* --- PROGRESS --- */
+  .progress-stat-num { font-size: 1.6rem; }
+  .progress-stat { padding: 14px 10px; }
+
+  /* --- FOOTER --- */
+  .main-footer {
+    padding: 10px 8px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+  }
+
+  /* --- FLEX CENTER utility --- */
+  .flex-center { gap: 6px; }
+}
+
+/* ── Small Phone (≤480px) ── */
+@media (max-width: 480px) {
+
+  /* --- HEADER --- */
+  .main-header {
+    padding: 8px 8px;
+    gap: 4px;
+  }
+  .main-header h1 {
+    font-size: 0.9rem;
+  }
+  .btn-back, .btn-home {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    border-radius: 14px;
+  }
+  .btn-dark-toggle {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  /* --- MAIN --- */
+  main { padding: 10px 6px; }
+
+  /* --- HOME --- */
+  .home-title { font-size: 1.15rem; }
+  .home-subtitle { font-size: 0.78rem; }
+
+  /* --- GRADE CARDS --- */
+  .grade-cards {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .grade-card {
+    padding: 14px 10px;
+  }
+  .grade-card .grade-icon { font-size: 1.8rem; }
+  .grade-card .grade-number { font-size: 1.2rem; }
+  .grade-card .grade-desc { font-size: 0.72rem; }
+
+  /* --- SUBJECT CARDS (home page) --- */
+  .subject-card .grade-number { font-size: 0.82rem !important; }
+
+  /* --- CHAPTER CARDS --- */
+  .chapter-card {
+    padding: 10px;
+    gap: 6px;
+  }
+  .chapter-title { font-size: 0.82rem; }
+  .chapter-num { font-size: 0.95rem; min-width: 26px; }
+
+  /* --- QUIZ --- */
+  .quiz-option {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+  }
+  .quiz-score .score-circle {
+    width: 80px;
+    height: 80px;
+    font-size: 1.5rem;
+  }
+
+  /* --- BUTTONS --- */
+  .btn {
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    border-radius: 20px;
+  }
+  .btn-sm { padding: 4px 8px; font-size: 0.7rem; }
+
+  /* --- TABS --- */
+  .content-tab {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+
+  /* --- FLASHCARDS --- */
+  .flashcard-wrapper { height: 170px; }
+  .flashcard-text { font-size: 0.88rem; }
+
+  /* --- TRUE/FALSE --- */
+  .btn-tf {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    min-width: 90px;
+  }
+
+  /* --- LOGIC GATES --- */
+  .gate-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* --- NETWORK SIM --- */
+  .network-canvas { height: 150px; }
+  .net-node { min-width: 55px; padding: 6px; font-size: 0.65rem; }
+  .net-icon { font-size: 1.1rem; }
+
+  /* --- FLOWCHART --- */
+  .flow-canvas { height: 250px; }
+  .flow-tool {
+    padding: 4px 6px;
+    font-size: 0.58rem;
+    min-width: 40px;
+  }
+
+  /* --- CROSSWORD --- */
+  .cw-cell { font-size: 0.7rem; }
+
+  /* --- GLOSSARY --- */
+  .glossary-letter {
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 0.65rem;
+  }
+
+  /* --- PROGRESS --- */
+  .progress-stat-num { font-size: 1.3rem; }
+
+  /* --- INFO BOX --- */
+  .info-box, .activity-box {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+}
