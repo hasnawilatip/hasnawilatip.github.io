@@ -585,6 +585,8 @@ const App = {
           }).join('')}
         </div>
 
+        <div id="perangkatArea_${subjectId}" style="margin-top:20px;"></div>
+
         ${subjectId === 'informatika' ? `
         <div style="text-align:center;margin-top:12px;">
           <button class="btn btn-primary btn-sm" onclick="SimulationEngine.showMenu();App.pushState({view:'simulation',subjectId:'${subjectId}'})">🧪 Simulasi</button>
@@ -599,6 +601,7 @@ const App = {
       </div>
     `;
     this.pushState({ view: 'subject', subjectId: subjectId });
+    this._loadPerangkatInline(subjectId);
   },
 
   /** Tampilkan perangkat pembelajaran untuk mapel tertentu */
@@ -636,6 +639,22 @@ const App = {
         <div class="flex-center mt-3"><button class="btn btn-secondary" onclick="App.goBack()">📚 Kembali</button></div>
       </div>`;
     this.pushState({ view: 'perangkat-mapel', subjectId });
+  },
+
+  /** Load perangkat inline di halaman mapel */
+  async _loadPerangkatInline(subjectId) {
+    const area = document.getElementById('perangkatArea_' + subjectId);
+    if (!area) return;
+    try {
+      if (typeof FB === 'undefined') { area.innerHTML = ''; return; }
+      const snap = await FB.db.ref('perangkat').once('value');
+      const all = snap.val() || {};
+      const items = Object.entries(all).filter(([k,v]) => v.subjectId === subjectId);
+      if (items.length === 0) { area.innerHTML = ''; return; }
+      const icons = { rpp:'📖', silabus:'📋', prota:'📅', bahanajar:'📚', lkpd:'✍️', media:'🎯', kisikisi:'🎯', rubrik:'📐', remedial:'🔄' };
+      const labels = { rpp:'RPP', silabus:'Silabus', prota:'Prota', bahanajar:'Bahan Ajar', lkpd:'LKPD', media:'Media', kisikisi:'Kisi-Kisi', rubrik:'Rubrik', remedial:'Remedial' };
+      area.innerHTML = `<h4 style="margin-bottom:8px;color:var(--green);">📋 Perangkat Pembelajaran</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">${items.map(([id, it]) => `<div class="grade-card subject-card" style="padding:14px;cursor:pointer;border-color:var(--green);" onclick="App._viewPerangkat('${id}')"><div style="font-size:1.5rem;">${icons[it.type]||'📄'}</div><div style="font-weight:600;font-size:0.85rem;">${labels[it.type]||it.type}</div><div style="font-size:0.7rem;color:var(--gray-500);">${it.topic||'Semua Bab'}</div></div>`).join('')}</div>`;
+    } catch(e) { area.innerHTML = ''; }
   },
 
   /** View satu perangkat */
