@@ -386,9 +386,10 @@ const App = {
       const subjOverride = overrides[subjectId];
       if (subjOverride) {
         const merged = JSON.parse(JSON.stringify(defaults));
-        for (const gradeKey of ['k7','k8','k9']) {
-          if (subjOverride[gradeKey]) {
-            merged[gradeKey] = subjOverride[gradeKey];
+        // Merge semua key dari override (k7, k8, k9, fillBlank, trueFalse, flashcards, dragDrop, dll.)
+        for (const key of Object.keys(subjOverride)) {
+          if (subjOverride[key] && typeof subjOverride[key] === 'object') {
+            merged[key] = subjOverride[key];
           }
         }
         return merged;
