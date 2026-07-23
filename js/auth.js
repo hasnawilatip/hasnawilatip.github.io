@@ -150,7 +150,8 @@ const Auth = {
       message: 'Login berhasil!',
       user: {
         username: key,
-        displayName: user.displayName
+        displayName: user.displayName,
+        role: user.role || 'siswa'
       }
     };
   },

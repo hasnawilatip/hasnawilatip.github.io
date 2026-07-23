@@ -18,10 +18,15 @@ const App = {
     // Auto-create default admin jika belum ada
     Auth.ensureDefaultAdmin();
 
-    // Cek login — jika sudah login, langsung ke home
+    // Cek login — admin ke dashboard, user lain ke home
     if (Auth.isLoggedIn()) {
       this._updateHeader();
-      this.showHome();
+      const user = Auth.currentUser();
+      if (user && user.role === 'admin') {
+        AdminDashboard.showDashboard();
+      } else {
+        this.showHome();
+      }
     } else {
       this.showLanding();
     }
@@ -60,7 +65,7 @@ const App = {
           ${loggedIn ? `
             <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : '🎒 Siswa'})</p>
             <div style="margin-top:16px;">
-              <button class="btn btn-primary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Lanjutkan Belajar</button>
+              <button class="btn btn-primary btn-lg" onclick="${user.role === 'admin' ? 'AdminDashboard.showDashboard()' : 'App.showHome()'}" style="font-size:1.1rem;padding:14px 36px;">📚 ${user.role === 'admin' ? 'Dashboard Admin' : 'Lanjutkan Belajar'}</button>
             </div>
             <p style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);">
               <a href="#" onclick="App._doLogout();return false;" style="color:var(--red);">🚪 Keluar / Ganti Akun</a>
@@ -140,7 +145,7 @@ const App = {
         <!-- CTA Bawah -->
         <div style="text-align:center;margin:36px 0 20px;">
           ${loggedIn
-            ? `<button class="btn btn-primary btn-lg" onclick="App.showHome()" style="font-size:1.1rem;padding:14px 36px;">📚 Lanjutkan Belajar</button>`
+            ? `<button class="btn btn-primary btn-lg" onclick="${user.role === 'admin' ? 'AdminDashboard.showDashboard()' : 'App.showHome()'}" style="font-size:1.1rem;padding:14px 36px;">📚 ${user.role === 'admin' ? 'Dashboard Admin' : 'Lanjutkan Belajar'}</button>`
             : `<button class="btn btn-primary btn-lg" onclick="App.showLogin()" style="font-size:1.1rem;padding:14px 36px;">🚀 Mulai Belajar Sekarang</button>`
           }
         </div>
@@ -156,9 +161,14 @@ const App = {
     this.history = [{ view: 'landing' }];
   },
 
-  /** Tombol Home → kembali ke Landing Page */
+  /** Tombol Home → sesuai role */
   _goHome() {
-    this.showLanding();
+    const user = Auth.currentUser();
+    if (user && user.role === 'admin') {
+      AdminDashboard.showDashboard();
+    } else {
+      this.showLanding();
+    }
   },
 
   /** Update header: tampilkan nama user + role + admin button + tombol logout */
@@ -247,7 +257,11 @@ const App = {
     if (result.success) {
       msgEl.innerHTML = '';
       this._updateHeader();
-      this.showHome();
+      if (result.user && result.user.role === 'admin') {
+        AdminDashboard.showDashboard();
+      } else {
+        this.showHome();
+      }
     } else {
       msgEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);"><b>Gagal:</b> ${result.message}</div>`;
     }
