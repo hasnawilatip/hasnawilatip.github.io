@@ -76,7 +76,16 @@
     <script src="js/admin.js?v=7"></script>
     <script src="js/ai-agent.js"></script>
 
-    <!-- App Controller - load from jsDelivr with specific commit -->
-    <script src="https://cdn.jsdelivr.net/gh/hasnawilatip/hasnawilatip.github.io@2658b28/js/app.js"></script>
+    <!-- App Controller -->
+    <script src="js/app.js?v=99"></script>
+    <!-- Inline safety net: force landing if blank after 4s -->
+    <script>
+    setTimeout(function(){
+      var mc = document.getElementById('mainContent');
+      if (mc && typeof App !== 'undefined' && App.showLanding && (!App.history || App.history.length === 0)) {
+        try { App.showLanding(); } catch(e) {}
+      }
+    }, 4000);
+    </script>
 </body>
 </html>
