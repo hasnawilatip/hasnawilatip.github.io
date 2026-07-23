@@ -18,6 +18,24 @@ const Auth = {
     return 'h_' + Math.abs(hash).toString(36) + '_' + str.length.toString(36);
   },
 
+  /** Auto-create default admin jika belum ada user */
+  ensureDefaultAdmin() {
+    const users = this._getUsers();
+    // Cek apakah sudah ada admin
+    const hasAdmin = Object.values(users).some(u => u.role === 'admin');
+    if (!hasAdmin) {
+      users['admin'] = {
+        passwordHash: this._hash('admin123'),
+        displayName: 'Administrator',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      };
+      this._saveUsers(users);
+      return { username: 'admin', password: 'admin123' };
+    }
+    return null;
+  },
+
   /** Ambil semua user dari localStorage */
   _getUsers() {
     try {

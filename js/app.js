@@ -15,6 +15,9 @@ const App = {
     document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
     DarkMode.init();
 
+    // Auto-create default admin jika belum ada
+    Auth.ensureDefaultAdmin();
+
     // Cek login — jika sudah login, langsung ke home
     if (Auth.isLoggedIn()) {
       this._updateHeader();
