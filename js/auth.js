@@ -81,13 +81,24 @@ const Auth = {
     if (!this.isLoggedIn()) return null;
     try {
       const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY));
-      const users = this._getUsers();
-      const user = users[session.username];
+      // Ambil role dari session langsung, fallback ke localStorage
+      let role = session.role || 'siswa';
+      let displayName = session.username;
+
+      // Coba dapatkan displayName dari localStorage
+      try {
+        const users = this._getUsers();
+        const user = users[session.username];
+        if (user) {
+          displayName = user.displayName || session.username;
+          role = user.role || role;
+        }
+      } catch(e) {}
+
       return {
         username: session.username,
-        displayName: user.displayName || session.username,
-        role: user.role || 'siswa',
-        createdAt: user.createdAt
+        displayName: displayName,
+        role: role,
       };
     } catch (e) {
       return null;
@@ -151,7 +162,8 @@ const Auth = {
         const result = await SheetsDB._call('login', { username, password });
         sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
           username: result.user.username,
-          role: result.user.role,
+          role: result.user.role || 'siswa',
+          displayName: result.user.displayName,
           loginAt: new Date().toISOString()
         }));
         return { success: true, message: 'Login berhasil!', user: result.user };
