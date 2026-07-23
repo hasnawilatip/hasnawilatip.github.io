@@ -549,6 +549,8 @@ const AdminDashboard = {
       `;
     }
   },
+
+  _saveApiKey() {
     const key = document.getElementById('apiKeyInput').value.trim();
     if (!key) {
       document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--red);">API Key tidak boleh kosong.</span>';
