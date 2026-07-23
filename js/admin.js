@@ -162,6 +162,11 @@ const AdminDashboard = {
             <div><div class="chapter-title">Statistik Global</div>
             <div class="chapter-meta">Lihat progres semua user di perangkat ini</div></div>
           </div>
+          <div class="chapter-card k8" onclick="AdminDashboard.showContentAnalysis()">
+            <div class="chapter-num">🔍</div>
+            <div><div class="chapter-title">Analisis Konten</div>
+            <div class="chapter-meta">Cek mapel mana yang belum lengkap kontennya</div></div>
+          </div>
         </div>
 
         <div class="flex-center mt-3">
@@ -423,6 +428,168 @@ const AdminDashboard = {
       </div>
     `;
     App.pushState({ view: 'admin-export' });
+  },
+
+  /** 🔍 Analisis Konten — cek mapel mana yang belum lengkap */
+  showContentAnalysis() {
+    if (!this._checkAdmin()) return;
+    const main = document.getElementById('mainContent');
+    const subjects = SUBJECTS;
+    const overrides = this.loadOverrides();
+    
+    main.innerHTML = `<div class="fade-in" style="max-width:900px;margin:0 auto;">
+      <div class="section-header"><h2>🔍 Analisis Kelengkapan Konten</h2>
+      <p style="color:var(--gray-500);">Mapel dengan konten kosong ditandai ⚠️. Klik untuk generate yang kosong.</p></div>
+      <div id="analysisResult" style="margin-top:12px;">⏳ Menganalisis...</div>
+    </div>`;
+    App.pushState({ view: 'admin-analysis' });
+
+    // Analisis semua mapel
+    let html = '';
+    const contentTypes = [
+      { key: 'content', label: '📖 Materi', icon: '📖' },
+      { key: 'quiz', label: '📝 Kuis', icon: '📝' },
+      { key: 'fillBlank', label: '✍️ Isian', icon: '✍️' },
+      { key: 'trueFalse', label: '✅ B/S', icon: '✅' },
+      { key: 'flashcards', label: '🃏 Flashcard', icon: '🃏' }
+    ];
+
+    for (const s of subjects) {
+      const data = App._getData(s.id);
+      const grades = ['k7', 'k8', 'k9'];
+      let totalChapters = 0, totalFilled = 0;
+      const missingDetails = [];
+
+      for (const gk of grades) {
+        const grade = data?.[gk];
+        if (!grade || !grade.chapters) continue;
+        for (const ch of grade.chapters) {
+          totalChapters++;
+          let filled = 0;
+          const missing = [];
+          for (const ct of contentTypes) {
+            if (ch[ct.key] && (Array.isArray(ch[ct.key]) ? ch[ct.key].length > 0 : ch[ct.key].length > 20)) {
+              filled++;
+            } else {
+              missing.push(ct.label);
+            }
+          }
+          if (filled < contentTypes.length) {
+            missingDetails.push({ grade: gk, chapter: ch, missing, filled, total: contentTypes.length });
+          }
+          totalFilled += filled;
+        }
+      }
+
+      const totalSlots = totalChapters * contentTypes.length;
+      const pct = totalSlots > 0 ? Math.round(totalFilled / totalSlots * 100) : 0;
+      const barColor = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--orange)' : 'var(--red)';
+      const statusIcon = pct >= 80 ? '✅' : pct >= 40 ? '⚠️' : '🔴';
+
+      html += `<div style="background:var(--white);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:8px;box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:1.3rem;">${s.icon}</span>
+          <b style="flex:1;min-width:120px;">${s.name}</b>
+          <span style="font-size:0.8rem;color:var(--gray-500);">${totalFilled}/${totalSlots} konten terisi</span>
+          <span>${statusIcon}</span>
+          <div style="width:80px;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:0.8rem;font-weight:700;color:${barColor};">${pct}%</span>
+          ${missingDetails.length > 0 ? `<button class="btn btn-sm" style="background:var(--orange-light);color:var(--orange);font-size:0.7rem;padding:4px 10px;" onclick="AdminDashboard._quickFillMissing('${s.id}')">🔄 Isi ${missingDetails.length} kosong</button>` : ''}
+        </div>`;
+
+      if (missingDetails.length > 0) {
+        html += `<div style="margin-top:8px;font-size:0.75rem;color:var(--gray-500);">
+          ${missingDetails.slice(0, 5).map(d => 
+            `${d.grade.toUpperCase()}: ${d.chapter.title} → kurang: ${d.missing.join(', ')}`
+          ).join('<br>')}
+          ${missingDetails.length > 5 ? `<br>...dan ${missingDetails.length - 5} lainnya` : ''}
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    document.getElementById('analysisResult').innerHTML = html || '<p>Semua mapel lengkap! 🎉</p>';
+  },
+
+  /** Quick-fill: generate konten kosong untuk 1 mapel */
+  async _quickFillMissing(subjectId) {
+    const s = SUBJECTS.find(x => x.id === subjectId);
+    if (!s) return;
+    if (!confirm(`Generate SEMUA konten kosong untuk ${s.name}?\\n\\nIni akan mengisi materi, kuis, isian, B/S, dan flashcard yang belum ada di semua bab.\n\nLanjutkan?`)) return;
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `<div class="fade-in" style="max-width:700px;margin:0 auto;">
+      <div class="section-header"><h2>🔄 Mengisi ${s.name}...</h2></div>
+      <div id="qfProgress" style="background:var(--white);border-radius:var(--radius);padding:20px;">
+        <p>🤖 AI sedang generate konten yang kosong...</p>
+        <div id="qfStatus"></div>
+      </div>
+    </div>`;
+
+    const data = App._getData(subjectId);
+    const grades = ['k7', 'k8', 'k9'];
+    const contentTypes = ['material', 'quiz', 'fillblank', 'truefalse', 'flashcards'];
+    let generated = 0, errors = 0;
+    const overrides = this.loadOverrides();
+
+    for (const gk of grades) {
+      const grade = data?.[gk];
+      if (!grade?.chapters) continue;
+      const gradeLabel = gk === 'k7' ? '7' : gk === 'k8' ? '8' : '9';
+
+      for (const ch of grade.chapters) {
+        for (const type of contentTypes) {
+          // Cek apakah konten sudah ada
+          if (type === 'material' && ch.content && ch.content.length > 20) continue;
+          if (type !== 'material' && ch[type] && ch[type].length > 0) continue;
+
+          const label = type === 'material' ? 'Materi' : type === 'quiz' ? 'Kuis' : type === 'fillblank' ? 'Isian' : type === 'truefalse' ? 'B/S' : 'Flashcard';
+          document.getElementById('qfStatus').innerHTML += `<p style="font-size:0.8rem;">⏳ ${ch.title} → ${label}...</p>`;
+
+          try {
+            if (!overrides[subjectId]) overrides[subjectId] = {};
+            if (!overrides[subjectId][gk]) overrides[subjectId][gk] = JSON.parse(JSON.stringify(grade));
+            if (!overrides[subjectId][gk].chapters) overrides[subjectId][gk].chapters = JSON.parse(JSON.stringify(grade.chapters));
+            let och = overrides[subjectId][gk].chapters.find(c => c.id === ch.id);
+            if (!och) { och = JSON.parse(JSON.stringify(ch)); overrides[subjectId][gk].chapters.push(och); }
+
+            switch (type) {
+              case 'material':
+                och.content = await AIAgent.generateMaterial(s.name, gradeLabel, ch.title, ch.id);
+                break;
+              case 'quiz':
+                och.quiz = await AIAgent.generateQuiz(s.name, gradeLabel, ch.title, 5);
+                break;
+              case 'fillblank':
+                och.fillBlank = { questions: await AIAgent.generateFillBlank(s.name, gradeLabel, ch.title, 5), title: ch.title };
+                break;
+              case 'truefalse':
+                och.trueFalse = { questions: await AIAgent.generateTrueFalse(s.name, gradeLabel, ch.title, 10), title: ch.title };
+                break;
+              case 'flashcards':
+                och.flashcards = { cards: await AIAgent.generateFlashcards(s.name, gradeLabel, ch.title, 8), title: ch.title };
+                break;
+            }
+            this.saveOverrides(overrides);
+            generated++;
+            document.getElementById('qfStatus').lastChild.textContent = `✅ ${ch.title} → ${label} ✓`;
+          } catch (err) {
+            errors++;
+            document.getElementById('qfStatus').lastChild.innerHTML += ` <span style="color:var(--red);">❌ ${err.message}</span>`;
+          }
+        }
+      }
+    }
+
+    await this.syncToFirestore(subjectId, overrides);
+    document.getElementById('qfProgress').innerHTML += `
+      <div style="margin-top:12px;background:var(--green-light);padding:12px;border-radius:8px;">
+        <b>✅ Selesai!</b> ${generated} konten digenerate, ${errors} error.
+      </div>
+      <button class="btn btn-secondary mt-2" onclick="AdminDashboard.showContentAnalysis()">🔍 Kembali ke Analisis</button>
+      <button class="btn btn-primary mt-2" onclick="AdminDashboard.showContentEditor()">📝 Buka Editor</button>`;
   },
 
   /** Statistik Global */
