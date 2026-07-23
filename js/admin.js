@@ -628,10 +628,13 @@ const AdminDashboard = {
             <option value="k9">📙 Kelas 9</option>
           </select>
 
-          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Bab / Topik</label>
-          <select id="aiChapter" class="fill-input" style="text-align:left;margin-bottom:14px;cursor:pointer;">
-            <option value="">-- Pilih Bab --</option>
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Bab / Topik (dari data)</label>
+          <select id="aiChapter" class="fill-input" style="text-align:left;margin-bottom:8px;cursor:pointer;" onchange="AdminDashboard._onChapterChange()">
+            <option value="">-- Pilih Bab (jika ada) --</option>
           </select>
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">📝 Topik Kustom <span style="font-weight:400;color:var(--gray-500);font-size:0.75rem;">(isi sendiri, lebih akurat!)</span></label>
+          <input type="text" id="aiCustomTopic" class="fill-input" placeholder="Contoh: Al-Qur'an Surah Al-Fatihah, Hukum Bacaan Mad, dll." style="text-align:left;margin-bottom:14px;">
 
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Jumlah Soal</label>
           <input type="number" id="aiCount" class="fill-input" value="5" min="1" max="20" style="text-align:left;margin-bottom:20px;width:100px;">
@@ -660,6 +663,19 @@ const AdminDashboard = {
     this._populateChapters('aiSubject', 'aiGrade', 'aiChapter');
   },
 
+  _onChapterChange() {
+    const chapterVal = document.getElementById('aiChapter')?.value;
+    const customInput = document.getElementById('aiCustomTopic');
+    if (!customInput) return;
+    // Jika user pilih bab dari dropdown, isi otomatis topik kustom
+    if (chapterVal && chapterVal.includes('|')) {
+      const title = chapterVal.split('|')[1];
+      if (title && !title.includes('Materi Semester') && !title.includes('Bab ' + title.match(/Bab (\d+)/)?.[1] + ' —')) {
+        customInput.value = title;
+      }
+    }
+  },
+
   _populateChapters(subjectSelectId, gradeSelectId, chapterSelectId) {
     const subjectId = document.getElementById(subjectSelectId)?.value;
     const gradeKey = document.getElementById(gradeSelectId)?.value;
@@ -681,17 +697,25 @@ const AdminDashboard = {
     const subjectId = document.getElementById('aiSubject').value;
     const gradeKey = document.getElementById('aiGrade').value;
     const chapterVal = document.getElementById('aiChapter').value;
+    const customTopic = document.getElementById('aiCustomTopic')?.value?.trim();
     const count = parseInt(document.getElementById('aiCount').value) || 5;
 
-    if (!chapterVal) {
-      alert('Pilih bab terlebih dahulu.');
+    // Pakai topik kustom jika diisi, jika tidak pakai dari dropdown
+    let chapterTitle, chapterId, chapterNum;
+    if (customTopic) {
+      chapterTitle = customTopic;
+      chapterId = chapterVal ? parseInt(chapterVal.split('|')[0]) || 0 : 0;
+      chapterNum = chapterId;
+    } else if (chapterVal && chapterVal.includes('|')) {
+      [chapterId, chapterTitle] = chapterVal.split('|');
+      chapterNum = parseInt(chapterId);
+    } else {
+      alert('Pilih bab dari dropdown atau isi topik kustom.');
       return;
     }
 
-    const [chapterId, chapterTitle] = chapterVal.split('|');
     const info = App._getSubjectInfo(subjectId);
     const gradeLabel = gradeKey === 'k7' ? '7' : gradeKey === 'k8' ? '8' : '9';
-    const chapterNum = parseInt(chapterId);
 
     const progressEl = document.getElementById('aiProgress');
     const resultEl = document.getElementById('aiResult');
