@@ -90,6 +90,11 @@ const AdminDashboard = {
 
         <!-- Menu Admin -->
         <div class="chapter-grid">
+          <div class="chapter-card k8" onclick="AdminDashboard.showAIGenerator()">
+            <div class="chapter-num">🤖</div>
+            <div><div class="chapter-title">AI Generator Konten</div>
+            <div class="chapter-meta">Generate materi, soal, flashcard otomatis dengan AI</div></div>
+          </div>
           <div class="chapter-card k7" onclick="AdminDashboard.showContentEditor()">
             <div class="chapter-num">📝</div>
             <div><div class="chapter-title">Editor Konten</div>
@@ -418,6 +423,317 @@ const AdminDashboard = {
   },
 
   // ─── HELPER FUNCTIONS ───
+
+  /** AI Generator Page */
+  showAIGenerator() {
+    if (!this._checkAdmin()) return;
+
+    const hasKey = AIAgent.hasKey();
+    const subjects = SUBJECTS;
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:750px;margin:0 auto;">
+        <div class="section-header">
+          <h2>🤖 AI Generator Konten</h2>
+          <p style="color:var(--gray-700);">Generate materi & soal otomatis dengan DeepSeek AI</p>
+        </div>
+
+        ${!hasKey ? `
+        <div class="info-box" style="background:var(--orange-light);border-left-color:var(--orange);margin-bottom:16px;">
+          <span class="info-title">⚠️ API Key belum diatur!</span>
+          <p>Masukkan DeepSeek API Key terlebih dahulu. 
+          <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);font-weight:600;">Klik di sini untuk Setting API Key</a></p>
+        </div>` : `
+        <div class="info-box" style="background:var(--green-light);border-left-color:var(--green);margin-bottom:16px;">
+          <span class="info-title">✅ API Key siap</span> · 
+          <a href="#" onclick="AdminDashboard.showAISettings()" style="color:var(--blue);">Ganti API Key</a>
+        </div>`}
+
+        <div class="chapter-grid">
+          <div class="chapter-card k7" onclick="AdminDashboard.showAIGenerate('material')">
+            <div class="chapter-num">📖</div>
+            <div><div class="chapter-title">Generate Materi</div>
+            <div class="chapter-meta">Buat materi pembelajaran per bab (HTML)</div></div>
+          </div>
+          <div class="chapter-card k8" onclick="AdminDashboard.showAIGenerate('quiz')">
+            <div class="chapter-num">📝</div>
+            <div><div class="chapter-title">Generate Soal Kuis</div>
+            <div class="chapter-meta">Soal pilihan ganda + jawaban</div></div>
+          </div>
+          <div class="chapter-card k9" onclick="AdminDashboard.showAIGenerate('fillblank')">
+            <div class="chapter-num">✍️</div>
+            <div><div class="chapter-title">Generate Isian Singkat</div>
+            <div class="chapter-meta">Soal isian dengan kunci jawaban</div></div>
+          </div>
+          <div class="chapter-card k7" onclick="AdminDashboard.showAIGenerate('truefalse')">
+            <div class="chapter-num">✅</div>
+            <div><div class="chapter-title">Generate Benar/Salah</div>
+            <div class="chapter-meta">Pernyataan benar & salah</div></div>
+          </div>
+          <div class="chapter-card k8" onclick="AdminDashboard.showAIGenerate('flashcards')">
+            <div class="chapter-num">🃏</div>
+            <div><div class="chapter-title">Generate Flashcards</div>
+            <div class="chapter-meta">Kartu istilah & definisi</div></div>
+          </div>
+        </div>
+
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="AdminDashboard.showDashboard()">🛡️ Dashboard</button>
+        </div>
+      </div>
+    `;
+    App.pushState({ view: 'admin-ai' });
+  },
+
+  /** AI Settings (API Key) */
+  showAISettings() {
+    if (!this._checkAdmin()) return;
+
+    const currentKey = AIAgent.getApiKey();
+    const masked = currentKey ? currentKey.slice(0, 6) + '...' + currentKey.slice(-4) : '';
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:550px;margin:0 auto;">
+        <div class="section-header">
+          <h2>⚙️ AI Settings</h2>
+          <p style="color:var(--gray-700);">Konfigurasi DeepSeek API Key</p>
+        </div>
+
+        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <p style="font-size:0.85rem;color:var(--gray-700);margin-bottom:12px;">
+            Dapatkan API Key dari <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:var(--blue);">platform.deepseek.com</a>
+          </p>
+
+          ${currentKey ? `<p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:8px;">Key saat ini: <code>${masked}</code></p>` : ''}
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">DeepSeek API Key</label>
+          <input type="password" id="apiKeyInput" class="fill-input" placeholder="sk-..." value="${currentKey}" style="text-align:left;margin-bottom:16px;">
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="AdminDashboard._saveApiKey()">💾 Simpan</button>
+            ${currentKey ? `<button class="btn btn-danger btn-sm" onclick="if(confirm('Hapus API Key?')){AIAgent.setApiKey('');AdminDashboard.showAISettings();}">🗑️ Hapus</button>` : ''}
+          </div>
+          <p id="apiKeyMsg" style="margin-top:8px;font-size:0.8rem;"></p>
+        </div>
+
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="AdminDashboard.showAIGenerator()">🤖 Kembali</button>
+        </div>
+      </div>
+    `;
+    App.pushState({ view: 'admin-ai-settings' });
+  },
+
+  _saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) {
+      document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--red);">API Key tidak boleh kosong.</span>';
+      return;
+    }
+    if (!key.startsWith('sk-')) {
+      document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--orange);">⚠️ Key biasanya diawali "sk-". Tetap simpan?</span><br><button class="btn btn-sm btn-primary" onclick="AIAgent.setApiKey(document.getElementById(\'apiKeyInput\').value.trim());AdminDashboard.showAIGenerator();">Ya, Simpan</button>';
+      return;
+    }
+    AIAgent.setApiKey(key);
+    document.getElementById('apiKeyMsg').innerHTML = '<span style="color:var(--green);">✅ API Key disimpan!</span>';
+    setTimeout(() => this.showAIGenerator(), 800);
+  },
+
+  /** Form Generate Konten */
+  showAIGenerate(type) {
+    if (!this._checkAdmin()) return;
+
+    const subjects = SUBJECTS;
+    const typeLabels = {
+      material: '📖 Generate Materi',
+      quiz: '📝 Generate Soal Kuis',
+      fillblank: '✍️ Generate Isian Singkat',
+      truefalse: '✅ Generate Benar/Salah',
+      flashcards: '🃏 Generate Flashcards'
+    };
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `
+      <div class="fade-in" style="max-width:600px;margin:0 auto;">
+        <div class="section-header">
+          <h2>${typeLabels[type]}</h2>
+          <p style="color:var(--gray-700);">Pilih mata pelajaran, kelas, dan topik</p>
+        </div>
+
+        <div style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Mata Pelajaran</label>
+          <select id="aiSubject" class="fill-input" style="text-align:left;margin-bottom:14px;cursor:pointer;" onchange="AdminDashboard._onSubjectChange('${type}')">
+            ${subjects.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}
+          </select>
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Kelas</label>
+          <select id="aiGrade" class="fill-input" style="text-align:left;margin-bottom:14px;cursor:pointer;" onchange="AdminDashboard._onGradeChange('${type}')">
+            <option value="k7">📗 Kelas 7</option>
+            <option value="k8">📘 Kelas 8</option>
+            <option value="k9">📙 Kelas 9</option>
+          </select>
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Bab / Topik</label>
+          <select id="aiChapter" class="fill-input" style="text-align:left;margin-bottom:14px;cursor:pointer;">
+            <option value="">-- Pilih Bab --</option>
+          </select>
+
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Jumlah Soal</label>
+          <input type="number" id="aiCount" class="fill-input" value="5" min="1" max="20" style="text-align:left;margin-bottom:20px;width:100px;">
+
+          <button class="btn btn-primary" onclick="AdminDashboard._doGenerate('${type}')" style="width:100%;">🤖 Generate dengan AI</button>
+          <div id="aiProgress" style="text-align:center;margin-top:12px;"></div>
+          <div id="aiResult" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="flex-center mt-3">
+          <button class="btn btn-secondary" onclick="AdminDashboard.showAIGenerator()">🤖 Kembali</button>
+        </div>
+      </div>
+    `;
+
+    // Populate chapters
+    this._populateChapters('aiSubject', 'aiGrade', 'aiChapter');
+    App.pushState({ view: 'admin-ai-generate', type });
+  },
+
+  _onSubjectChange(type) {
+    this._populateChapters('aiSubject', 'aiGrade', 'aiChapter');
+  },
+
+  _onGradeChange(type) {
+    this._populateChapters('aiSubject', 'aiGrade', 'aiChapter');
+  },
+
+  _populateChapters(subjectSelectId, gradeSelectId, chapterSelectId) {
+    const subjectId = document.getElementById(subjectSelectId)?.value;
+    const gradeKey = document.getElementById(gradeSelectId)?.value;
+    const chapterSelect = document.getElementById(chapterSelectId);
+    if (!chapterSelect) return;
+
+    const data = App._getData(subjectId);
+    const grade = data?.[gradeKey];
+    if (!grade || !grade.chapters) {
+      chapterSelect.innerHTML = '<option value="">-- Tidak ada bab --</option>';
+      return;
+    }
+
+    chapterSelect.innerHTML = '<option value="">-- Pilih Bab --</option>' +
+      grade.chapters.map(ch => `<option value="${ch.id}|${this._escAttr(ch.title)}">Bab ${ch.id}: ${ch.title}</option>`).join('');
+  },
+
+  async _doGenerate(type) {
+    const subjectId = document.getElementById('aiSubject').value;
+    const gradeKey = document.getElementById('aiGrade').value;
+    const chapterVal = document.getElementById('aiChapter').value;
+    const count = parseInt(document.getElementById('aiCount').value) || 5;
+
+    if (!chapterVal) {
+      alert('Pilih bab terlebih dahulu.');
+      return;
+    }
+
+    const [chapterId, chapterTitle] = chapterVal.split('|');
+    const info = App._getSubjectInfo(subjectId);
+    const gradeLabel = gradeKey === 'k7' ? '7' : gradeKey === 'k8' ? '8' : '9';
+    const chapterNum = parseInt(chapterId);
+
+    const progressEl = document.getElementById('aiProgress');
+    const resultEl = document.getElementById('aiResult');
+    progressEl.innerHTML = '<p style="color:var(--blue);">🤖 AI sedang generate... tunggu sebentar...</p>';
+    resultEl.innerHTML = '';
+
+    try {
+      let output = '';
+      switch (type) {
+        case 'material': {
+          const html = await AIAgent.generateMaterial(info.name, gradeLabel, chapterTitle, chapterNum);
+          output = html;
+          resultEl.innerHTML = `
+            <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+              <b style="color:var(--green);">✅ Materi berhasil digenerate!</b>
+              <div style="max-height:400px;overflow-y:auto;margin-top:8px;padding:12px;background:var(--white);border-radius:var(--radius-sm);font-size:0.9rem;">${html}</div>
+              <div style="margin-top:12px;display:flex;gap:8px;">
+                <button class="btn btn-success btn-sm" onclick="AdminDashboard._saveGeneratedMaterial('${subjectId}','${gradeKey}',${chapterId})">💾 Simpan Materi</button>
+                <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAIGenerate('material')">🔄 Generate Ulang</button>
+              </div>
+              <textarea id="genOutput" style="display:none;">${this._escAttr(html)}</textarea>
+            </div>`;
+          break;
+        }
+        case 'quiz': {
+          const quiz = await AIAgent.generateQuiz(info.name, gradeLabel, chapterTitle, count);
+          output = JSON.stringify(quiz);
+          resultEl.innerHTML = `
+            <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+              <b style="color:var(--green);">✅ ${quiz.length} soal kuis berhasil digenerate!</b>
+              <div style="max-height:300px;overflow-y:auto;margin-top:8px;">${quiz.map((q,i) => `<p style="margin:4px 0;font-size:0.85rem;"><b>#${i+1}:</b> ${q.q}<br>✅ ${q.opts[q.ans]}</p>`).join('')}</div>
+              <div style="margin-top:12px;display:flex;gap:8px;">
+                <button class="btn btn-success btn-sm" onclick="AdminDashboard._saveGeneratedQuiz('${subjectId}','${gradeKey}',${chapterId})">💾 Simpan Soal</button>
+                <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAIGenerate('quiz')">🔄 Generate Ulang</button>
+              </div>
+              <textarea id="genOutput" style="display:none;">${this._escAttr(output)}</textarea>
+            </div>`;
+          break;
+        }
+        default: {
+          resultEl.innerHTML = `<p style="color:var(--orange);">Tipe generate ini akan segera hadir.</p>`;
+        }
+      }
+      progressEl.innerHTML = '';
+    } catch (err) {
+      progressEl.innerHTML = `<div class="info-box" style="background:var(--red-light);border-left-color:var(--red);"><b>❌ Gagal:</b> ${err.message}</div>`;
+    }
+  },
+
+  _saveGeneratedMaterial(subjectId, gradeKey, chapterId) {
+    const html = document.getElementById('genOutput')?.value;
+    if (!html) return alert('Tidak ada data untuk disimpan.');
+
+    const overrides = this.loadOverrides();
+    if (!overrides[subjectId]) overrides[subjectId] = {};
+    if (!overrides[subjectId][gradeKey]) overrides[subjectId][gradeKey] = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey]));
+    if (!overrides[subjectId][gradeKey].chapters) {
+      overrides[subjectId][gradeKey].chapters = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey].chapters));
+    }
+    let ch = overrides[subjectId][gradeKey].chapters.find(c => c.id === chapterId);
+    if (!ch) {
+      const orig = App._getData(subjectId)[gradeKey].chapters.find(c => c.id === chapterId);
+      ch = JSON.parse(JSON.stringify(orig));
+      overrides[subjectId][gradeKey].chapters.push(ch);
+    }
+    ch.content = html;
+    this.saveOverrides(overrides);
+    alert('✅ Materi berhasil disimpan! Siswa/guru akan melihat materi baru.');
+  },
+
+  _saveGeneratedQuiz(subjectId, gradeKey, chapterId) {
+    const jsonStr = document.getElementById('genOutput')?.value;
+    if (!jsonStr) return alert('Tidak ada data untuk disimpan.');
+    let quiz;
+    try { quiz = JSON.parse(jsonStr); } catch(e) { return alert('Data tidak valid.'); }
+
+    const overrides = this.loadOverrides();
+    if (!overrides[subjectId]) overrides[subjectId] = {};
+    if (!overrides[subjectId][gradeKey]) overrides[subjectId][gradeKey] = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey]));
+    if (!overrides[subjectId][gradeKey].chapters) {
+      overrides[subjectId][gradeKey].chapters = JSON.parse(JSON.stringify(App._getData(subjectId)[gradeKey].chapters));
+    }
+    let ch = overrides[subjectId][gradeKey].chapters.find(c => c.id === chapterId);
+    if (!ch) {
+      const orig = App._getData(subjectId)[gradeKey].chapters.find(c => c.id === chapterId);
+      ch = JSON.parse(JSON.stringify(orig));
+      overrides[subjectId][gradeKey].chapters.push(ch);
+    }
+    ch.quiz = quiz;
+    this.saveOverrides(overrides);
+    alert(`✅ ${quiz.length} soal berhasil disimpan!`);
+  },
+
+  _escAttr(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
 
   _esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

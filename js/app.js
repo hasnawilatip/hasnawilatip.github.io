@@ -359,7 +359,22 @@ const App = {
 
   // ─── HELPER ───
   _getData(subjectId) {
-    return getSubjectData(subjectId) || INFORMATIKA_DATA;
+    const defaults = getSubjectData(subjectId) || INFORMATIKA_DATA;
+    // Merge dengan admin overrides jika ada
+    if (typeof AdminDashboard !== 'undefined' && AdminDashboard.loadOverrides) {
+      const overrides = AdminDashboard.loadOverrides();
+      const subjOverride = overrides[subjectId];
+      if (subjOverride) {
+        const merged = JSON.parse(JSON.stringify(defaults));
+        for (const gradeKey of ['k7','k8','k9']) {
+          if (subjOverride[gradeKey]) {
+            merged[gradeKey] = subjOverride[gradeKey];
+          }
+        }
+        return merged;
+      }
+    }
+    return defaults;
   },
 
   _getSubjectInfo(subjectId) {
@@ -423,6 +438,8 @@ const App = {
       case 'register': this.showRegister(); break;
       case 'admin': AdminDashboard.showDashboard(); break;
       case 'admin-content': AdminDashboard.showContentEditor(); break;
+      case 'admin-ai': AdminDashboard.showAIGenerator(); break;
+      case 'admin-ai-settings': AdminDashboard.showAISettings(); break;
       case 'admin-edit-subject': AdminDashboard.editSubject(prev.subjectId); break;
       case 'admin-edit-chapter': AdminDashboard.editChapter(prev.subjectId, prev.gradeKey || prev.grade, prev.chapterId); break;
       case 'admin-users': AdminDashboard.showUserManager(); break;
