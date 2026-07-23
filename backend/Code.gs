@@ -50,30 +50,13 @@ function response(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ─── ENSURE SPREADSHEET ───
+// ─── GANTI dengan ID Spreadsheet Anda ───
+const SPREADSHEET_ID = '1a2B3cD4eF5g...'; // ← PASTE ID DI SINI
+
 function ensureSheets() {
-  let ss;
-  // Coba bound spreadsheet dulu
-  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch(e) {}
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-  // Kalau standalone, pakai ID yang disimpan
-  if (!ss) {
-    const props = PropertiesService.getScriptProperties();
-    const ssId = props.getProperty('SPREADSHEET_ID');
-    if (ssId) {
-      try { ss = SpreadsheetApp.openById(ssId); } catch(e) {}
-    }
-  }
-
-  // Buat baru jika belum ada
-  if (!ss) {
-    ss = SpreadsheetApp.create('MediaInteraktifDB');
-    try {
-      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId());
-    } catch(e) {}
-  }
-
-  // Setup sheet tabs
+  // Setup sheet tabs (hanya sekali)
   const names = ['users', 'content', 'progress'];
   names.forEach(name => {
     let sheet = ss.getSheetByName(name);
@@ -91,7 +74,6 @@ function ensureSheets() {
       }
     }
   });
-  // Hapus Sheet1 default
   const def = ss.getSheetByName('Sheet1');
   if (def) ss.deleteSheet(def);
 
