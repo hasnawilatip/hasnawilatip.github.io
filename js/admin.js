@@ -1373,6 +1373,7 @@ const AdminDashboard = {
     }
     ch.content = html;
     this.saveOverrides(overrides);
+    this.syncToFirestore(subjectId, overrides);
     alert('✅ Materi berhasil disimpan! Siswa/guru akan melihat materi baru.');
   },
 
@@ -1396,6 +1397,7 @@ const AdminDashboard = {
     }
     ch.quiz = quiz;
     this.saveOverrides(overrides);
+    this.syncToFirestore(subjectId, overrides);
     alert(`✅ ${quiz.length} soal berhasil disimpan!`);
   },
 

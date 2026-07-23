@@ -10,6 +10,7 @@ const App = {
 
   init() {
     this.history = [];
+    this._loadFirebaseOverrides(); // Preload konten dari Firebase
     document.getElementById('btnBack').addEventListener('click', () => this.goBack());
     document.getElementById('btnHome').addEventListener('click', () => this._goHome());
     document.getElementById('btnLogout').addEventListener('click', () => this._doLogout());
@@ -396,22 +397,38 @@ const App = {
   },
 
   // ─── HELPER ───
+  _firebaseOverrides: {}, // Cache Firebase overrides
+
+  /** Preload Firebase overrides on init */
+  async _loadFirebaseOverrides() {
+    if (typeof FB === 'undefined') return;
+    try {
+      const snap = await FB.db.ref('content').once('value');
+      this._firebaseOverrides = snap.val() || {};
+    } catch(e) { this._firebaseOverrides = {}; }
+  },
+
   _getData(subjectId) {
     const defaults = getSubjectData(subjectId) || INFORMATIKA_DATA;
-    // Merge dengan admin overrides jika ada
+    let overrides = {};
+    // Merge localStorage overrides
     if (typeof AdminDashboard !== 'undefined' && AdminDashboard.loadOverrides) {
-      const overrides = AdminDashboard.loadOverrides();
-      const subjOverride = overrides[subjectId];
-      if (subjOverride) {
-        const merged = JSON.parse(JSON.stringify(defaults));
-        // Merge semua key dari override (k7, k8, k9, fillBlank, trueFalse, flashcards, dragDrop, dll.)
-        for (const key of Object.keys(subjOverride)) {
-          if (subjOverride[key] && typeof subjOverride[key] === 'object') {
-            merged[key] = subjOverride[key];
-          }
+      overrides = AdminDashboard.loadOverrides() || {};
+    }
+    // Merge Firebase overrides (cached)
+    if (this._firebaseOverrides && this._firebaseOverrides[subjectId]) {
+      if (!overrides[subjectId]) overrides[subjectId] = {};
+      Object.assign(overrides[subjectId], this._firebaseOverrides[subjectId]);
+    }
+    const subjOverride = overrides[subjectId];
+    if (subjOverride) {
+      const merged = JSON.parse(JSON.stringify(defaults));
+      for (const key of Object.keys(subjOverride)) {
+        if (subjOverride[key] && typeof subjOverride[key] === 'object') {
+          merged[key] = subjOverride[key];
         }
-        return merged;
       }
+      return merged;
     }
     return defaults;
   },
