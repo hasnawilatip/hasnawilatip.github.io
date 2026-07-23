@@ -52,7 +52,7 @@ const App = {
         <div class="landing-hero">
           <div class="landing-icon">🖥️</div>
           <h2 class="landing-title">Media Interaktif SMP/MTs</h2>
-          <p class="landing-subtitle">Platform belajar interaktif lengkap untuk Madrasah Tsanawiyah<br>
+          <p class="landing-subtitle">Platform belajar interaktif lengkap untuk SMP/MTs<br>
           sesuai Kurikulum Merdeka Fase D (Kelas 7–9)</p>
           ${loggedIn ? `
             <p style="margin-top:12px;color:var(--green);font-weight:600;">✅ Login sebagai <strong>${user.displayName}</strong> (${user.role === 'guru' ? '👨‍🏫 Guru' : '🎒 Siswa'})</p>
@@ -443,7 +443,7 @@ const App = {
     main.innerHTML = `
       <div class="home-container fade-in">
         <h2 class="home-title">📚 Media Pembelajaran Interaktif</h2>
-        <p class="home-subtitle">Madrasah Tsanawiyah (MTs) — Kurikulum Merdeka Fase D</p>
+        <p class="home-subtitle">SMP/MTs — Kurikulum Merdeka Fase D</p>
 
         <h3 style="color:var(--green);margin:20px 0 12px;text-align:center;">🕌 Pendidikan Agama Islam</h3>
         <div class="grade-cards">${renderSubjectCards(paiSubjects)}</div>
@@ -796,14 +796,14 @@ const App = {
       <div class="fade-in" style="max-width:650px;margin:0 auto;">
         <div class="section-header">
           <h2>ℹ️ Tentang Aplikasi</h2>
-          <p style="color:var(--gray-700);max-width:500px;margin:0 auto;">Media Pembelajaran Interaktif untuk Madrasah Tsanawiyah</p>
+          <p style="color:var(--gray-700);max-width:500px;margin:0 auto;">Media Pembelajaran Interaktif untuk SMP/MTs</p>
         </div>
 
         <div style="background:var(--card-bg);border-radius:12px;padding:24px;margin-top:20px;box-shadow:var(--shadow-sm);text-align:center;">
           <div style="font-size:3rem;margin-bottom:12px;">🖥️</div>
           <h3 style="margin-bottom:8px;">Media Interaktif SMP/MTs</h3>
           <p style="color:var(--gray-700);margin-bottom:20px;">
-            Platform belajar interaktif untuk siswa Madrasah Tsanawiyah (MTs)<br>
+            Platform belajar interaktif untuk siswa SMP/MTs<br>
             dengan 15 mata pelajaran sesuai Kurikulum Merdeka Fase D.<br>
             Dilengkapi kuis, simulasi, puzzle, flashcards, dan berbagai latihan interaktif.
           </p>

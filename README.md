@@ -1,6 +1,6 @@
 # 🖥️ Media Interaktif SMP/MTs
 
-**Platform belajar interaktif untuk Madrasah Tsanawiyah (MTs) — Kurikulum Merdeka Fase D**
+**Platform belajar interaktif untuk SMP/MTs — Kurikulum Merdeka Fase D**
 
 ## 📚 Fitur
 
