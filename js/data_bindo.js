@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   DATA BAHASA INDONESIA — MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
+   DATA BAHASA INDONESIA — SMP/MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
    ══════════════════════════════════════════════════════════ */
 
 const BINDO_DATA = {

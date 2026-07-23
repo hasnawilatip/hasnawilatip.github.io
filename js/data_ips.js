@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   DATA IPS — MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
+   DATA IPS — SMP/MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
    ══════════════════════════════════════════════════════════ */
 
 const IPS_DATA = {

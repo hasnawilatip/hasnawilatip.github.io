@@ -82,7 +82,7 @@ const GlossaryEngine = {
 
     main.innerHTML = `
       <div class="fade-in" style="max-width:750px;margin:0 auto;">
-        <h3 style="text-align:center;margin-bottom:16px;">📋 Glosarium Multi-Mapel MTs</h3>
+        <h3 style="text-align:center;margin-bottom:16px;">📋 Glosarium Multi-Mapel SMP/MTs</h3>
 
         <!-- Search bar -->
         <div class="glossary-search">

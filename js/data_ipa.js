@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   DATA IPA — MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
+   DATA IPA — SMP/MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
    ══════════════════════════════════════════════════════════ */
 
 const IPA_DATA = {

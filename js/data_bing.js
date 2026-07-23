@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   DATA BAHASA INGGRIS — MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
+   DATA BAHASA INGGRIS — SMP/MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
    ══════════════════════════════════════════════════════════ */
 
 const BING_DATA = {

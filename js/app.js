@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   APP CONTROLLER — Navigasi Multi-Mapel MTs
+   APP CONTROLLER — Navigasi Multi-Mapel SMP/MTs
    Alur: Home → Pilih Mapel → Pilih Kelas → Bab → Materi/Latihan
    ══════════════════════════════════════════════════════════ */
 
@@ -144,7 +144,7 @@ const App = {
 
         <!-- Footer Mini -->
         <div style="text-align:center;padding:16px 0;color:var(--gray-500);font-size:0.78rem;">
-          <p>© 2026 <strong>Hasnawi Latip</strong> — Media Pembelajaran Interaktif MTs</p>
+          <p>© 2026 <strong>Hasnawi Latip</strong> — Media Pembelajaran Interaktif SMP/MTs</p>
           <p>Kurikulum Merdeka Fase D | 100% Gratis</p>
         </div>
 
@@ -820,7 +820,7 @@ const App = {
           <hr style="border-color:var(--gray-200);margin:20px 0;">
 
           <div style="color:var(--gray-500);font-size:0.85rem;">
-            <p>📚 15 Mata Pelajaran MTs</p>
+            <p>📚 15 Mata Pelajaran SMP/MTs</p>
             <p>📝 Kuis · Isian · Benar/Salah · Flashcards · Drag & Drop</p>
             <p>🔬 Simulasi: Biner · Gerbang Logika · Sorting · Jaringan · Enkripsi</p>
             <p>🛠️ Tools: Flowchart Builder · TTS · Puzzle Kode · Glosarium</p>

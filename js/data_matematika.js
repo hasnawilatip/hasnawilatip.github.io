@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   DATA MATEMATIKA — MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
+   DATA MATEMATIKA — SMP/MTs Kelas 7, 8, 9 (Kurikulum Merdeka)
    ══════════════════════════════════════════════════════════ */
 
 const MATEMATIKA_DATA = {

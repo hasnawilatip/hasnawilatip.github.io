@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   SUBJECTS REGISTRY — Semua Mata Pelajaran MTs
+   SUBJECTS REGISTRY — Semua Mata Pelajaran SMP/MTs
    Kurikulum Merdeka — Fase D (Kelas 7–9)
    ══════════════════════════════════════════════════════════ */
 
