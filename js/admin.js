@@ -16,7 +16,7 @@ const AdminDashboard = {
     return true;
   },
 
-  /** Load content overrides dari localStorage */
+  /** Load content overrides — dari Sheets jika ada, fallback localStorage */
   loadOverrides() {
     try {
       return JSON.parse(localStorage.getItem(this.OVERRIDE_KEY)) || {};
@@ -25,9 +25,37 @@ const AdminDashboard = {
     }
   },
 
-  /** Simpan content overrides */
+  /** Simpan content overrides — ke Sheets jika ada, + localStorage */
   saveOverrides(data) {
     localStorage.setItem(this.OVERRIDE_KEY, JSON.stringify(data));
+  },
+
+  /** Sync overrides ke Sheets (dipanggil setelah batch generate) */
+  async syncToSheets(subjectId, overrides) {
+    if (typeof SheetsDB === 'undefined' || !SheetsDB.isConfigured()) return;
+    try {
+      await SheetsDB._call('saveContent', { subjectId, overrides: overrides[subjectId] || {} });
+      console.log('✅ Konten tersimpan ke Sheets');
+    } catch (e) {
+      console.warn('⚠️ Gagal sync ke Sheets:', e.message);
+    }
+  },
+
+  /** Fetch overrides dari Sheets */
+  async fetchFromSheets(subjectId) {
+    if (typeof SheetsDB === 'undefined' || !SheetsDB.isConfigured()) return null;
+    try {
+      const result = await SheetsDB._call('getContent', { subjectId });
+      if (result && result[subjectId]) {
+        const overrides = this.loadOverrides();
+        overrides[subjectId] = result[subjectId];
+        this.saveOverrides(overrides);
+      }
+      return result;
+    } catch (e) {
+      console.warn('⚠️ Gagal fetch dari Sheets:', e.message);
+      return null;
+    }
   },
 
   /** Ambil data asli dari global variable */
@@ -511,7 +539,18 @@ const AdminDashboard = {
       <div class="fade-in" style="max-width:600px;margin:0 auto;">
         <div class="section-header">
           <h2>⚙️ AI Settings</h2>
-          <p style="color:var(--gray-700);">Konfigurasi multi-provider AI</p>
+          <p style="color:var(--gray-700);">Konfigurasi multi-provider AI & Database</p>
+        </div>
+
+        <!-- Database -->
+        <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+          <h4 style="margin-bottom:10px;">📊 Google Sheets Database</h4>
+          <p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:8px;">
+            Masukkan URL Google Apps Script. Biarkan kosong untuk pakai localStorage (offline).
+          </p>
+          <input type="text" id="sheetsUrl" class="fill-input" placeholder="https://script.google.com/macros/s/xxx/exec" value="${SheetsDB.getUrl().replace('YOUR_SCRIPT_ID','') || ''}" style="text-align:left;margin-bottom:8px;">
+          <button class="btn btn-sm btn-primary" onclick="AdminDashboard._saveSheetsUrl()">💾 Simpan URL</button>
+          <span id="sheetsMsg" style="font-size:0.8rem;margin-left:8px;">${SheetsDB.isConfigured() ? '✅ Terhubung' : '⚠️ Pakai localStorage'}</span>
         </div>
 
         <div style="background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
@@ -563,6 +602,19 @@ const AdminDashboard = {
     const select = document.getElementById('aiModelSelect')?.value;
     const model = custom || select;
     if (model) AIAgent.setModel(AIAgent.getActiveProvider(), model);
+  },
+
+  _saveSheetsUrl() {
+    const url = document.getElementById('sheetsUrl')?.value?.trim();
+    if (url) {
+      SheetsDB.setUrl(url);
+      const el = document.getElementById('sheetsMsg');
+      if (el) el.textContent = '✅ Terhubung ke Sheets';
+    } else {
+      localStorage.removeItem('admin_sheets_url');
+      const el = document.getElementById('sheetsMsg');
+      if (el) el.textContent = '⚠️ Pakai localStorage';
+    }
   },
 
   _saveApiKey() {
@@ -902,9 +954,9 @@ const AdminDashboard = {
     }
 
     this.saveOverrides(overrides);
+    // Sync ke Sheets
+    this.syncToSheets(subjectId, overrides);
   },
-
-  /** Generate single item (fallback dari halaman lain) */
   showAIGenerate(type) {
     if (!this._checkAdmin()) return;
 

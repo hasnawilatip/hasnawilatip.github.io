@@ -268,12 +268,12 @@ const App = {
   },
 
   /** Handle login submit */
-  _handleLogin() {
+  async _handleLogin() {
     const username = document.getElementById('loginUser').value;
     const password = document.getElementById('loginPass').value;
     const msgEl = document.getElementById('authMsg');
 
-    const result = Auth.login(username, password);
+    const result = await Auth.login(username, password);
     if (result.success) {
       msgEl.innerHTML = '';
       this._updateHeader();
@@ -359,7 +359,7 @@ const App = {
   },
 
   /** Handle register submit */
-  _handleRegister() {
+  async _handleRegister() {
     const name = document.getElementById('regName').value.trim();
     const username = document.getElementById('regUser').value;
     const password = document.getElementById('regPass').value;
@@ -367,7 +367,7 @@ const App = {
     const adminCode = document.getElementById('regAdminCode')?.value || '';
     const msgEl = document.getElementById('authMsg');
 
-    const result = Auth.register(username, password, name, role, adminCode);
+    const result = await Auth.register(username, password, name, role, adminCode);
     if (result.success) {
       msgEl.innerHTML = `<div class="info-box" style="background:var(--green-light);border-left-color:var(--green);"><b>Berhasil!</b> ${result.message}</div>`;
       // Auto-redirect ke login setelah 1.5 detik

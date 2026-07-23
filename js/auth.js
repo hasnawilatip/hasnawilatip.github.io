@@ -94,8 +94,8 @@ const Auth = {
     }
   },
 
-  /** Register user baru */
-  register(username, password, displayName, role, adminCode) {
+  /** Register user baru — via Sheets jika ada, fallback localStorage */
+  async register(username, password, displayName, role, adminCode) {
     // Validasi
     if (!username || username.trim().length < 3) {
       return { success: false, message: 'Username minimal 3 karakter.' };
@@ -109,48 +109,64 @@ const Auth = {
     if (!role || !['guru','siswa','admin'].includes(role)) {
       return { success: false, message: 'Pilih status: Guru atau Siswa.' };
     }
-    // Admin hanya bisa daftar dengan kode rahasia
     if (role === 'admin' && adminCode !== 'mtsadmin2026') {
       return { success: false, message: 'Kode admin tidak valid.' };
     }
 
-    const users = this._getUsers();
-    const key = username.trim().toLowerCase();
-
-    if (users[key]) {
-      return { success: false, message: 'Username sudah terdaftar. Silakan login.' };
+    // Coba via Sheets
+    if (typeof SheetsDB !== 'undefined' && SheetsDB.isConfigured()) {
+      try {
+        await SheetsDB._call('register', {
+          username, password, displayName: displayName || username.trim(), role, adminCode
+        });
+        return { success: true, message: 'Registrasi berhasil! Silakan login.' };
+      } catch (e) {
+        return { success: false, message: 'Server: ' + e.message };
+      }
     }
 
+    // Fallback localStorage
+    const users = this._getUsers();
+    const key = username.trim().toLowerCase();
+    if (users[key]) return { success: false, message: 'Username sudah terdaftar.' };
     users[key] = {
       passwordHash: this._hash(password),
       displayName: displayName || username.trim(),
       role: role,
       createdAt: new Date().toISOString()
     };
-
     this._saveUsers(users);
     return { success: true, message: 'Registrasi berhasil! Silakan login.' };
   },
 
-  /** Login */
-  login(username, password) {
+  /** Login — via Sheets jika ada, fallback localStorage */
+  async login(username, password) {
     if (!username || !password) {
       return { success: false, message: 'Username dan password harus diisi.' };
     }
 
+    // Coba via Sheets
+    if (typeof SheetsDB !== 'undefined' && SheetsDB.isConfigured()) {
+      try {
+        const result = await SheetsDB._call('login', { username, password });
+        sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
+          username: result.user.username,
+          role: result.user.role,
+          loginAt: new Date().toISOString()
+        }));
+        return { success: true, message: 'Login berhasil!', user: result.user };
+      } catch (e) {
+        return { success: false, message: 'Server: ' + e.message };
+      }
+    }
+
+    // Fallback localStorage
     const users = this._getUsers();
     const key = username.trim().toLowerCase();
     const user = users[key];
+    if (!user) return { success: false, message: 'Username tidak ditemukan.' };
+    if (user.passwordHash !== this._hash(password)) return { success: false, message: 'Password salah.' };
 
-    if (!user) {
-      return { success: false, message: 'Username tidak ditemukan.' };
-    }
-
-    if (user.passwordHash !== this._hash(password)) {
-      return { success: false, message: 'Password salah.' };
-    }
-
-    // Simpan session
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
       username: key,
       passwordHash: user.passwordHash,
@@ -158,13 +174,8 @@ const Auth = {
     }));
 
     return {
-      success: true,
-      message: 'Login berhasil!',
-      user: {
-        username: key,
-        displayName: user.displayName,
-        role: user.role || 'siswa'
-      }
+      success: true, message: 'Login berhasil!',
+      user: { username: key, displayName: user.displayName, role: user.role || 'siswa' }
     };
   },
 
