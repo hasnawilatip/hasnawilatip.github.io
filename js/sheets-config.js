@@ -5,7 +5,7 @@
 
 const SheetsDB = {
   // GANTI dengan URL dari Google Apps Script deploy
-  API_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbymbTg7bCIp7NHMKYSB7Ma-st7xSbc68kXa7WEHPspdHgtzc7vGcvJZnqwDHimB3QKM/exec',
 
   /** Set API URL (bisa dari admin settings) */
   setUrl(url) {
