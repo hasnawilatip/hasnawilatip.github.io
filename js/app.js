@@ -320,11 +320,13 @@ const App = {
     this.history.push(state);
     const btnBack = document.getElementById('btnBack');
     const btnHome = document.getElementById('btnHome');
-    btnBack.style.display = 'inline-block';
-    btnHome.style.display = 'inline-block';
-    if (state.view === 'home') {
+    // Halaman publik: sembunyikan Back & Home
+    if (state.view === 'home' || state.view === 'login' || state.view === 'register' || state.view === 'landing') {
       btnBack.style.display = 'none';
       btnHome.style.display = 'none';
+    } else {
+      btnBack.style.display = 'inline-block';
+      btnHome.style.display = 'inline-block';
     }
     if (state.subjectId) this.currentSubject = state.subjectId;
     if (state.grade) this.currentGrade = state.grade;
