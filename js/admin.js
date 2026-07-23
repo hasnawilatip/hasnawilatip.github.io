@@ -1069,6 +1069,7 @@ const AdminDashboard = {
 
     let completed = 0;
     const errors = [];
+    const failedItems = []; // { topic, type }
     const generatedContent = {}; // { chapterId: { material, quiz, ... } }
 
     const updateProgress = (msg) => {
@@ -1115,6 +1116,7 @@ const AdminDashboard = {
           }
         } catch (err) {
           errors.push(`${topic.title} (${label}): ${err.message}`);
+          failedItems.push({ topic, type, label });
         }
         completed++;
       }
@@ -1123,16 +1125,90 @@ const AdminDashboard = {
     updateProgress('✅ Selesai! Menyimpan ke Sheets...');
     await this._saveBatchResults(subjectId, gradeKey, generatedContent, allTopics);
 
+    // Simpan konteks untuk retry
+    this._lastBatchContext = { subjectId, gradeKey, generatedContent, allTopics, failedItems, info, checkedTypes, totalTasks };
+
     // Tampilkan hasil
     let resultHtml = `<div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
-      <b style="color:var(--green);">✅ ${completed} item berhasil digenerate!</b>`;
+      <b style="color:var(--green);">✅ ${completed - errors.length} item berhasil digenerate!</b>`;
     if (errors.length > 0) {
       resultHtml += `<div style="margin-top:8px;color:var(--red);font-size:0.85rem;"><b>⚠️ ${errors.length} error:</b><br>${errors.map(e => '· ' + e).join('<br>')}</div>`;
     }
     resultHtml += `
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-success btn-sm" onclick="alert('Semua konten sudah otomatis tersimpan!');AdminDashboard.showContentEditor();">📝 Lihat di Editor Konten</button>
-        <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAIBatchGenerate()">🔄 Generate Ulang</button>
+        ${failedItems.length > 0 ? `<button class="btn btn-warning btn-sm" onclick="AdminDashboard._retryFailedBatch()" style="background:#d29922;color:#000;">🔄 Ulangi ${failedItems.length} Gagal</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="AdminDashboard.showAIBatchGenerate()">🔄 Generate Ulang Semua</button>
+      </div>
+    </div>`;
+    progressEl.innerHTML += resultHtml;
+  },
+
+  /** Retry hanya item yang gagal dari batch sebelumnya */
+  async _retryFailedBatch() {
+    const ctx = this._lastBatchContext;
+    if (!ctx || !ctx.failedItems || ctx.failedItems.length === 0) {
+      alert('Tidak ada item gagal untuk diulang.');
+      return;
+    }
+
+    const progressEl = document.getElementById('aiBatchProgress');
+    progressEl.innerHTML = `
+      <div style="background:var(--orange-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+        <b>🔄 Mengulang ${ctx.failedItems.length} item gagal...</b>
+        <div id="batchStatus" style="margin-top:8px;font-size:0.85rem;">Persiapan...</div>
+        <div style="background:var(--gray-200);height:6px;border-radius:3px;margin-top:8px;overflow:hidden;">
+          <div id="batchBar" style="height:100%;background:var(--orange);width:0%;"></div>
+        </div>
+      </div>
+    `;
+
+    let retried = 0;
+    const newErrors = [];
+
+    for (const item of ctx.failedItems) {
+      document.getElementById('batchStatus').textContent = `${item.topic.title} → ${item.label}...`;
+      try {
+        switch (item.type) {
+          case 'material':
+            ctx.generatedContent[item.topic.id].material = await AIAgent.generateMaterial(ctx.info.name, ctx.gradeKey === 'k7' ? '7' : ctx.gradeKey === 'k8' ? '8' : '9', item.topic.title, item.topic.id);
+            break;
+          case 'quiz':
+            ctx.generatedContent[item.topic.id].quiz = await AIAgent.generateQuiz(ctx.info.name, ctx.gradeKey === 'k7' ? '7' : ctx.gradeKey === 'k8' ? '8' : '9', item.topic.title, 5);
+            break;
+          case 'fillblank':
+            const fb = await AIAgent.generateFillBlank(ctx.info.name, ctx.gradeKey === 'k7' ? '7' : ctx.gradeKey === 'k8' ? '8' : '9', item.topic.title, 5);
+            ctx.generatedContent[item.topic.id].fillBlank = { questions: fb, title: item.topic.title };
+            break;
+          case 'truefalse':
+            const tf = await AIAgent.generateTrueFalse(ctx.info.name, ctx.gradeKey === 'k7' ? '7' : ctx.gradeKey === 'k8' ? '8' : '9', item.topic.title, 10);
+            ctx.generatedContent[item.topic.id].trueFalse = { questions: tf, title: item.topic.title };
+            break;
+          case 'flashcards':
+            const fc = await AIAgent.generateFlashcards(ctx.info.name, ctx.gradeKey === 'k7' ? '7' : ctx.gradeKey === 'k8' ? '8' : '9', item.topic.title, 8);
+            ctx.generatedContent[item.topic.id].flashcards = { cards: fc, title: item.topic.title };
+            break;
+        }
+        retried++;
+      } catch (err) {
+        newErrors.push(`${item.topic.title} (${item.label}): ${err.message}`);
+      }
+      const pct = Math.round((retried + newErrors.length) / ctx.failedItems.length * 100);
+      document.getElementById('batchBar').style.width = pct + '%';
+    }
+
+    await this._saveBatchResults(ctx.subjectId, ctx.gradeKey, ctx.generatedContent, ctx.allTopics);
+
+    document.getElementById('batchStatus').textContent = '✅ Selesai retry!';
+    let resultHtml = `<div style="background:var(--green-light);border-radius:var(--radius-sm);padding:16px;margin-top:12px;">
+      <b style="color:var(--green);">✅ ${retried} item berhasil di-retry!</b>`;
+    if (newErrors.length > 0) {
+      resultHtml += `<div style="margin-top:8px;color:var(--red);font-size:0.85rem;"><b>⚠️ ${newErrors.length} masih gagal:</b><br>${newErrors.map(e => '· ' + e).join('<br>')}</div>`;
+    }
+    resultHtml += `
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-success btn-sm" onclick="alert('Semua konten sudah otomatis tersimpan!');AdminDashboard.showContentEditor();">📝 Lihat di Editor Konten</button>
+        ${newErrors.length > 0 ? `<button class="btn btn-warning btn-sm" onclick="AdminDashboard._retryFailedBatch()" style="background:#d29922;color:#000;">🔄 Ulangi ${newErrors.length} Gagal</button>` : ''}
       </div>
     </div>`;
     progressEl.innerHTML += resultHtml;

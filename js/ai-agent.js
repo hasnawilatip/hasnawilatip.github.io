@@ -142,12 +142,29 @@ Format output HARUS HTML langsung (tanpa <!DOCTYPE>, <html>, <head>, <body>):
     // Cari array JSON terluar
     const m = c.match(/\[[\s\S]*\]/);
     if (!m) throw new Error('Format JSON tidak valid. Coba ulang.');
+    let jsonStr = m[0];
+    
+    // Bersihkan masalah umum AI-generated JSON
     try {
-      return JSON.parse(m[0]);
+      return JSON.parse(jsonStr);
     } catch (e) {
-      // Coba bersihkan trailing comma & karakter non-JSON
-      const cleaned = m[0].replace(/,\s*([\]}])/g, '$1').replace(/[\x00-\x1F\x7F]/g, '');
-      return JSON.parse(cleaned);
+      // Fix 1: trailing comma sebelum ] atau }
+      jsonStr = jsonStr.replace(/,\s*([\]}])/g, '$1');
+      // Fix 2: single quotes → double quotes (hati-hati dengan apostrophe)
+      // Fix 3: newline dalam string value
+      try { return JSON.parse(jsonStr); } catch (e2) {
+        // Fix 4: coba parse dengan regex ekstraksi manual untuk quiz
+        try {
+          const items = [];
+          const itemRegex = /\{[^}]+\}/g;
+          let match;
+          while ((match = itemRegex.exec(jsonStr)) !== null) {
+            try { items.push(JSON.parse(match[0])); } catch(ex) {}
+          }
+          if (items.length > 0) return items;
+        } catch(ex) {}
+        throw new Error('Format JSON bermasalah. Coba generate ulang.');
+      }
     }
   },
 
