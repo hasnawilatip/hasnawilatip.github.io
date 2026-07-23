@@ -16,45 +16,25 @@ const AdminDashboard = {
     return true;
   },
 
-  /** Load content overrides — dari Sheets jika ada, fallback localStorage */
+  /** Load content overrides — Firestore */
   loadOverrides() {
     try {
       return JSON.parse(localStorage.getItem(this.OVERRIDE_KEY)) || {};
-    } catch (e) {
-      return {};
-    }
+    } catch (e) { return {}; }
   },
 
-  /** Simpan content overrides — ke Sheets jika ada, + localStorage */
   saveOverrides(data) {
     localStorage.setItem(this.OVERRIDE_KEY, JSON.stringify(data));
   },
 
-  /** Sync overrides ke Sheets (dipanggil setelah batch generate) */
-  async syncToSheets(subjectId, overrides) {
-    if (typeof SheetsDB === 'undefined' || !SheetsDB.isConfigured()) return;
+  /** Sync overrides ke Firestore */
+  async syncToFirestore(subjectId, overrides) {
+    if (typeof FB === 'undefined') return;
     try {
-      await SheetsDB._call('saveContent', { subjectId, overrides: overrides[subjectId] || {} });
-      console.log('✅ Konten tersimpan ke Sheets');
+      await FB.saveContent(subjectId, overrides[subjectId] || {});
+      console.log('✅ Konten tersimpan ke Firestore');
     } catch (e) {
-      console.warn('⚠️ Gagal sync ke Sheets:', e.message);
-    }
-  },
-
-  /** Fetch overrides dari Sheets */
-  async fetchFromSheets(subjectId) {
-    if (typeof SheetsDB === 'undefined' || !SheetsDB.isConfigured()) return null;
-    try {
-      const result = await SheetsDB._call('getContent', { subjectId });
-      if (result && result[subjectId]) {
-        const overrides = this.loadOverrides();
-        overrides[subjectId] = result[subjectId];
-        this.saveOverrides(overrides);
-      }
-      return result;
-    } catch (e) {
-      console.warn('⚠️ Gagal fetch dari Sheets:', e.message);
-      return null;
+      console.warn('⚠️ Gagal sync ke Firestore:', e.message);
     }
   },
 
@@ -977,8 +957,8 @@ const AdminDashboard = {
     }
 
     this.saveOverrides(overrides);
-    // Sync ke Sheets (tunggu selesai)
-    await this.syncToSheets(subjectId, overrides);
+    // Sync ke Firestore
+    await this.syncToFirestore(subjectId, overrides);
   },
   showAIGenerate(type) {
     if (!this._checkAdmin()) return;

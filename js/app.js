@@ -35,9 +35,6 @@ const App = {
       return;
     }
 
-    // Auto-create default admin jika belum ada
-    Auth.ensureDefaultAdmin();
-
     // Cek login — admin ke dashboard, user lain ke home
     if (Auth.isLoggedIn()) {
       this._updateHeader();
@@ -220,7 +217,7 @@ const App = {
       document.getElementById('btnHome').style.display = 'none';
       document.getElementById('headerUser').style.display = 'none';
       document.getElementById('btnLogout').style.display = 'none';
-      this.showLogin();
+      this.showLanding();
     }
   },
 
@@ -238,8 +235,8 @@ const App = {
         <div id="authMsg" style="text-align:center;margin-bottom:12px;"></div>
 
         <form id="loginForm" onsubmit="return false;" style="background:var(--white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);">
-          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Username</label>
-          <input type="text" id="loginUser" class="fill-input" placeholder="Username" autocomplete="username" style="margin-bottom:14px;text-align:left;">
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Email</label>
+          <input type="email" id="loginUser" class="fill-input" placeholder="contoh@email.com" autocomplete="email" style="margin-bottom:14px;text-align:left;">
 
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Password</label>
           <input type="password" id="loginPass" class="fill-input" placeholder="Password" autocomplete="current-password" style="margin-bottom:20px;text-align:left;">
@@ -270,11 +267,11 @@ const App = {
 
   /** Handle login submit */
   async _handleLogin() {
-    const username = document.getElementById('loginUser').value;
+    const email = document.getElementById('loginUser').value.trim();
     const password = document.getElementById('loginPass').value;
     const msgEl = document.getElementById('authMsg');
 
-    const result = await Auth.login(username, password);
+    const result = await Auth.login(email, password);
     if (result.success) {
       msgEl.innerHTML = '';
       this._updateHeader();
@@ -305,11 +302,11 @@ const App = {
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Nama Lengkap</label>
           <input type="text" id="regName" class="fill-input" placeholder="Contoh: Ahmad" autocomplete="name" style="margin-bottom:14px;text-align:left;">
 
-          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Username</label>
-          <input type="text" id="regUser" class="fill-input" placeholder="Min. 3 karakter" autocomplete="username" style="margin-bottom:14px;text-align:left;">
+          <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Email</label>
+          <input type="email" id="regUser" class="fill-input" placeholder="contoh@email.com" autocomplete="email" style="margin-bottom:14px;text-align:left;">
 
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Password</label>
-          <input type="password" id="regPass" class="fill-input" placeholder="Min. 4 karakter" autocomplete="new-password" style="margin-bottom:14px;text-align:left;">
+          <input type="password" id="regPass" class="fill-input" placeholder="Min. 6 karakter" autocomplete="new-password" style="margin-bottom:14px;text-align:left;">
 
           <label style="display:block;font-weight:600;margin-bottom:4px;font-size:0.85rem;">Status</label>
           <div style="display:flex;gap:10px;margin-bottom:20px;">
@@ -362,13 +359,13 @@ const App = {
   /** Handle register submit */
   async _handleRegister() {
     const name = document.getElementById('regName').value.trim();
-    const username = document.getElementById('regUser').value;
+    const email = document.getElementById('regUser').value.trim();
     const password = document.getElementById('regPass').value;
     const role = document.querySelector('input[name="role"]:checked')?.value || 'siswa';
     const adminCode = document.getElementById('regAdminCode')?.value || '';
     const msgEl = document.getElementById('authMsg');
 
-    const result = await Auth.register(username, password, name, role, adminCode);
+    const result = await Auth.register(email, password, name, role, adminCode);
     if (result.success) {
       msgEl.innerHTML = `<div class="info-box" style="background:var(--green-light);border-left-color:var(--green);"><b>Berhasil!</b> ${result.message}</div>`;
       // Auto-redirect ke login setelah 1.5 detik
@@ -683,14 +680,12 @@ const App = {
     const user = Auth.currentUser();
     if (!user) return;
 
-    if (SheetsDB.isConfigured()) {
+    // Firebase
+    if (typeof FB !== 'undefined') {
       try {
-        const result = await SheetsDB._call('unlockContent', {
-          username: user.username, subjectId, gradeKey, chapterId, cost
-        });
+        const result = await FB.unlockContent(user.uid, subjectId, gradeKey, chapterId, cost);
         if (result.success) {
           Auth.saveUnlock(subjectId, gradeKey, chapterId);
-          // Update credits di session
           const session = JSON.parse(sessionStorage.getItem('app_current_user') || '{}');
           session.credits = result.credits;
           sessionStorage.setItem('app_current_user', JSON.stringify(session));
@@ -702,12 +697,13 @@ const App = {
       } catch (e) {
         msgEl.innerHTML = '<span style="color:var(--red);">❌ ' + e.message + '</span>';
       }
-    } else {
-      // Fallback localStorage
-      Auth.saveUnlock(subjectId, gradeKey, chapterId);
-      msgEl.innerHTML = '<span style="color:var(--green);">✅ Terbuka! Mengarahkan...</span>';
-      setTimeout(() => App.showChapter(subjectId, gradeKey, chapterId), 800);
+      return;
     }
+
+    // Fallback localStorage
+    Auth.saveUnlock(subjectId, gradeKey, chapterId);
+    msgEl.innerHTML = '<span style="color:var(--green);">✅ Terbuka! Mengarahkan...</span>';
+    setTimeout(() => App.showChapter(subjectId, gradeKey, chapterId), 800);
   },
   showChapter(subjectId, gradeKey, chapterId) {
     this.currentSubject = subjectId;

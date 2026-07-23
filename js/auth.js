@@ -64,40 +64,52 @@ const Auth = {
 
   /** Cek apakah user sedang login */
   isLoggedIn() {
+    // Firebase
+    if (typeof FB !== 'undefined') {
+      const u = FB.auth.currentUser;
+      if (u) return true;
+    }
+    // Fallback sessionStorage
     const session = sessionStorage.getItem(this.SESSION_KEY);
     if (!session) return false;
     try {
       const data = JSON.parse(session);
       const users = this._getUsers();
-      const user = users[data.username];
-      return user && user.passwordHash === data.passwordHash;
-    } catch (e) {
-      return false;
-    }
+      const user = users[data.email || data.username];
+      return !!(user && user.passwordHash === data.passwordHash);
+    } catch (e) { return false; }
   },
 
   /** Ambil data user yang sedang login */
   currentUser() {
     if (!this.isLoggedIn()) return null;
     try {
-      const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY));
-      let role = session.role || 'siswa';
-      let displayName = session.displayName || session.username;
-      let credits = session.credits || 0;
-      let unlocked = session.unlocked || [];
-
-      try {
-        const users = this._getUsers();
-        const user = users[session.username];
-        if (user) {
-          displayName = user.displayName || displayName;
-          role = user.role || role;
-          credits = user.credits || credits;
-          unlocked = user.unlocked || unlocked;
+      // Firebase
+      if (typeof FB !== 'undefined') {
+        const u = FB.auth.currentUser;
+        if (u) {
+          const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY) || '{}');
+          return {
+            email: u.email,
+            uid: u.uid,
+            displayName: session.displayName || u.displayName || u.email,
+            role: session.role || 'siswa',
+            credits: session.credits || 0,
+            unlocked: session.unlocked || []
+          };
         }
-      } catch(e) {}
-
-      return { username: session.username, displayName, role, credits, unlocked };
+      }
+      // Fallback
+      const session = JSON.parse(sessionStorage.getItem(this.SESSION_KEY));
+      const users = this._getUsers();
+      const user = users[session.email || session.username] || {};
+      return {
+        email: session.email || session.username,
+        displayName: user.displayName || session.email || session.username,
+        role: user.role || 'siswa',
+        credits: user.credits || 0,
+        unlocked: user.unlocked || []
+      };
     } catch (e) { return null; }
   },
 
@@ -120,17 +132,13 @@ const Auth = {
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
   },
 
-  /** Register user baru — via Sheets jika ada, fallback localStorage */
-  async register(username, password, displayName, role, adminCode) {
-    // Validasi
-    if (!username || username.trim().length < 3) {
-      return { success: false, message: 'Username minimal 3 karakter.' };
+  /** Register user baru — Firebase */
+  async register(email, password, displayName, role, adminCode) {
+    if (!email || !email.includes('@')) {
+      return { success: false, message: 'Email tidak valid.' };
     }
-    if (!password || password.length < 4) {
-      return { success: false, message: 'Password minimal 4 karakter.' };
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return { success: false, message: 'Username hanya boleh huruf, angka, dan underscore.' };
+    if (!password || password.length < 6) {
+      return { success: false, message: 'Password minimal 6 karakter.' };
     }
     if (!role || !['guru','siswa','admin'].includes(role)) {
       return { success: false, message: 'Pilih status: Guru atau Siswa.' };
@@ -139,77 +147,67 @@ const Auth = {
       return { success: false, message: 'Kode admin tidak valid.' };
     }
 
-    // Coba via Sheets
-    if (typeof SheetsDB !== 'undefined' && SheetsDB.isConfigured()) {
+    // Firebase register
+    if (typeof FB !== 'undefined') {
       try {
-        await SheetsDB._call('register', {
-          username, password, displayName: displayName || username.trim(), role, adminCode
-        });
-        return { success: true, message: 'Registrasi berhasil! Silakan login.' };
+        const result = await FB.register(email, password, displayName, role);
+        return result;
       } catch (e) {
-        return { success: false, message: 'Server: ' + e.message };
+        return { success: false, message: e.message };
       }
     }
 
     // Fallback localStorage
     const users = this._getUsers();
-    const key = username.trim().toLowerCase();
-    if (users[key]) return { success: false, message: 'Username sudah terdaftar.' };
-    users[key] = {
-      passwordHash: this._hash(password),
-      displayName: displayName || username.trim(),
-      role: role,
-      createdAt: new Date().toISOString()
-    };
+    const key = email.trim().toLowerCase();
+    if (users[key]) return { success: false, message: 'Email sudah terdaftar.' };
+    users[key] = { passwordHash: this._hash(password), displayName: displayName || key, role, credits: 5, unlocked: [], createdAt: new Date().toISOString() };
     this._saveUsers(users);
-    return { success: true, message: 'Registrasi berhasil! Silakan login.' };
+    return { success: true, message: 'Registrasi berhasil! Dapat 5 kredit gratis.' };
   },
 
-  /** Login — via Sheets jika ada, fallback localStorage */
-  async login(username, password) {
-    if (!username || !password) {
-      return { success: false, message: 'Username dan password harus diisi.' };
+  /** Login — Firebase */
+  async login(email, password) {
+    if (!email || !password) {
+      return { success: false, message: 'Email dan password harus diisi.' };
     }
 
-    // Coba via Sheets
-    if (typeof SheetsDB !== 'undefined' && SheetsDB.isConfigured()) {
+    // Firebase login
+    if (typeof FB !== 'undefined') {
       try {
-        const result = await SheetsDB._call('login', { username, password });
-        sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
-          username: result.user.username,
-          role: result.user.role || 'siswa',
-          displayName: result.user.displayName,
-          credits: result.user.credits || 0,
-          unlocked: result.user.unlocked || [],
-          loginAt: new Date().toISOString()
-        }));
-        return { success: true, message: 'Login berhasil!', user: result.user };
+        const result = await FB.login(email, password);
+        if (result.success) {
+          sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
+            email: result.user.email,
+            uid: result.user.uid,
+            displayName: result.user.displayName,
+            role: result.user.role,
+            credits: result.user.credits,
+            unlocked: result.user.unlocked,
+            loginAt: new Date().toISOString()
+          }));
+        }
+        return result;
       } catch (e) {
-        return { success: false, message: 'Server: ' + e.message };
+        return { success: false, message: e.message };
       }
     }
 
     // Fallback localStorage
     const users = this._getUsers();
-    const key = username.trim().toLowerCase();
+    const key = email.trim().toLowerCase();
     const user = users[key];
-    if (!user) return { success: false, message: 'Username tidak ditemukan.' };
+    if (!user) return { success: false, message: 'Email tidak ditemukan.' };
     if (user.passwordHash !== this._hash(password)) return { success: false, message: 'Password salah.' };
-
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
-      username: key,
-      passwordHash: user.passwordHash,
-      loginAt: new Date().toISOString()
+      email: key, passwordHash: user.passwordHash, loginAt: new Date().toISOString()
     }));
-
-    return {
-      success: true, message: 'Login berhasil!',
-      user: { username: key, displayName: user.displayName, role: user.role || 'siswa' }
-    };
+    return { success: true, message: 'Login berhasil!', user: { email: key, displayName: user.displayName, role: user.role, credits: user.credits, unlocked: user.unlocked } };
   },
 
   /** Logout */
   logout() {
+    if (typeof FB !== 'undefined') FB.auth.signOut();
     sessionStorage.removeItem(this.SESSION_KEY);
   },
 
