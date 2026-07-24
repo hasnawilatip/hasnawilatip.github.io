@@ -459,7 +459,6 @@ const App = {
   _getSubjectInfo(subjectId) {
     return getSubjectInfo(subjectId) || SUBJECTS.find(s => s.id === 'informatika');
   },
-  },
 
   // ─── NAVIGASI ───
   pushState(state) {
