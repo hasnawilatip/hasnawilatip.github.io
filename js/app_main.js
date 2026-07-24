@@ -56,15 +56,17 @@ const App = {
             if (typeof AIAgent !== 'undefined') await AIAgent._loadFromFirebase();
             AdminDashboard.showDashboard();
           } else {
+            await this._loadFirebaseOverrides();
             this.showHome();
           }
         } else {
+          await this._loadFirebaseOverrides();
           this.showLanding();
         }
       });
       // Fallback: if auth doesn't resolve within 3s, show landing anyway
       setTimeout(() => {
-        if (!authResolved) { authResolved = true; this.showLanding(); }
+        if (!authResolved) { authResolved = true; this._loadFirebaseOverrides(); this.showLanding(); }
       }, 3000);
       return;
     }
