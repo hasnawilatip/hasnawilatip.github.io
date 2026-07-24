@@ -517,22 +517,51 @@ const AdminDashboard = {
   async _quickFillMissing(subjectId) {
     const s = SUBJECTS.find(x => x.id === subjectId);
     if (!s) return;
-    if (!confirm(`Generate SEMUA konten kosong untuk ${s.name}?\\n\\nIni akan mengisi materi, kuis, isian, B/S, dan flashcard yang belum ada di semua bab.\n\nLanjutkan?`)) return;
+    if (!confirm(`Generate SEMUA konten kosong untuk ${s.name}?\n\nIni akan mengisi materi, kuis, isian, B/S, dan flashcard yang belum ada di semua bab.\n\nLanjutkan?`)) return;
 
     const main = document.getElementById('mainContent');
-    main.innerHTML = `<div class="fade-in" style="max-width:700px;margin:0 auto;">
-      <div class="section-header"><h2>🔄 Mengisi ${s.name}...</h2></div>
-      <div id="qfProgress" style="background:var(--white);border-radius:var(--radius);padding:20px;">
-        <p>🤖 AI sedang generate konten yang kosong...</p>
-        <div id="qfStatus"></div>
-      </div>
-    </div>`;
-
+    
+    // Hitung dulu total yang perlu digenerate
     const data = App._getData(subjectId);
     const grades = ['k7', 'k8', 'k9'];
     const contentTypes = ['material', 'quiz', 'fillblank', 'truefalse', 'flashcards'];
-    let generated = 0, errors = 0;
+    let totalMissing = 0;
+    for (const gk of grades) {
+      const grade = data?.[gk];
+      if (!grade?.chapters) continue;
+      for (const ch of grade.chapters) {
+        for (const type of contentTypes) {
+          const hasContent = (type === 'material' && ch.content && ch.content.length > 20)
+            || (type === 'quiz' && ch.quiz && Array.isArray(ch.quiz) && ch.quiz.length > 0)
+            || (type === 'fillblank' && ch.fillBlank && ch.fillBlank.questions && ch.fillBlank.questions.length > 0)
+            || (type === 'truefalse' && ch.trueFalse && ch.trueFalse.questions && ch.trueFalse.questions.length > 0)
+            || (type === 'flashcards' && ch.flashcards && ch.flashcards.cards && ch.flashcards.cards.length > 0);
+          if (!hasContent) totalMissing++;
+        }
+      }
+    }
+
+    main.innerHTML = `<div class="fade-in" style="max-width:700px;margin:0 auto;">
+      <div class="section-header"><h2>🔄 Mengisi ${s.name}...</h2><p style="color:var(--gray-500);">${totalMissing} konten akan digenerate</p></div>
+      <div id="qfProgress" style="background:var(--white);border-radius:var(--radius);padding:20px;">
+        <div id="qfBarText" style="font-size:0.85rem;margin-bottom:8px;">🤖 Persiapan...</div>
+        <div style="background:var(--gray-200);height:8px;border-radius:4px;overflow:hidden;">
+          <div id="qfBar" style="height:100%;background:var(--blue);width:0%;transition:width 0.3s;"></div>
+        </div>
+        <div id="qfStatus" style="margin-top:10px;max-height:300px;overflow-y:auto;font-size:0.78rem;"></div>
+      </div>
+    </div>`;
+
+    let generated = 0, errors = 0, completed = 0;
     const overrides = this.loadOverrides();
+
+    const updateBar = (msg) => {
+      const pct = totalMissing > 0 ? Math.round(completed / totalMissing * 100) : 100;
+      const barEl = document.getElementById('qfBar');
+      const textEl = document.getElementById('qfBarText');
+      if (barEl) barEl.style.width = pct + '%';
+      if (textEl) textEl.textContent = `⏳ ${completed}/${totalMissing} · ${msg}`;
+    };
 
     for (const gk of grades) {
       const grade = data?.[gk];
@@ -541,7 +570,6 @@ const AdminDashboard = {
 
       for (const ch of grade.chapters) {
         for (const type of contentTypes) {
-          // Cek apakah konten sudah ada (pakai check functions)
           const hasContent = (type === 'material' && ch.content && ch.content.length > 20)
             || (type === 'quiz' && ch.quiz && Array.isArray(ch.quiz) && ch.quiz.length > 0)
             || (type === 'fillblank' && ch.fillBlank && ch.fillBlank.questions && ch.fillBlank.questions.length > 0)
@@ -550,7 +578,11 @@ const AdminDashboard = {
           if (hasContent) continue;
 
           const label = type === 'material' ? 'Materi' : type === 'quiz' ? 'Kuis' : type === 'fillblank' ? 'Isian' : type === 'truefalse' ? 'B/S' : 'Flashcard';
-          document.getElementById('qfStatus').innerHTML += `<p style="font-size:0.8rem;">⏳ ${ch.title} → ${label}...</p>`;
+          updateBar(`${ch.title} → ${label}`);
+          const statusEl = document.getElementById('qfStatus');
+          const line = document.createElement('div');
+          line.textContent = `⏳ ${ch.title} → ${label}...`;
+          statusEl.appendChild(line);
 
           try {
             if (!overrides[subjectId]) overrides[subjectId] = {};
@@ -578,15 +610,17 @@ const AdminDashboard = {
             }
             this.saveOverrides(overrides);
             generated++;
-            document.getElementById('qfStatus').lastChild.textContent = `✅ ${ch.title} → ${label} ✓`;
+            line.textContent = `✅ ${ch.title} → ${label} ✓`;
           } catch (err) {
             errors++;
-            document.getElementById('qfStatus').lastChild.innerHTML += ` <span style="color:var(--red);">❌ ${err.message}</span>`;
+            line.innerHTML += ` <span style="color:var(--red);">❌ ${err.message}</span>`;
           }
+          completed++;
         }
       }
     }
 
+    updateBar('Selesai!');
     await this.syncToFirestore(subjectId, overrides);
     document.getElementById('qfProgress').innerHTML += `
       <div style="margin-top:12px;background:var(--green-light);padding:12px;border-radius:8px;">
