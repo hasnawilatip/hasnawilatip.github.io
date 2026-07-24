@@ -48,17 +48,19 @@ const AIAgent = {
 
   _saveSettings(s) {
     localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(s));
-    // Sync to Firebase agar tersedia di semua device admin
-    if (typeof FB !== 'undefined') {
-      FB.db.ref('settings/ai').set(s).catch(() => {});
+    // Sync ke Firebase di bawah data admin user (rules sudah allow)
+    if (typeof FB !== 'undefined' && FB.auth && FB.auth.currentUser) {
+      const uid = FB.auth.currentUser.uid;
+      FB.db.ref('users/' + uid + '/aiSettings').set(s).catch(() => {});
     }
   },
 
   /** Load settings from Firebase (called on init, overrides localStorage) */
   async _loadFromFirebase() {
-    if (typeof FB === 'undefined') return;
+    if (typeof FB === 'undefined' || !FB.auth || !FB.auth.currentUser) return;
     try {
-      const snap = await FB.db.ref('settings/ai').once('value');
+      const uid = FB.auth.currentUser.uid;
+      const snap = await FB.db.ref('users/' + uid + '/aiSettings').once('value');
       const fb = snap.val();
       if (fb) {
         localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(fb));
