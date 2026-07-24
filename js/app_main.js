@@ -54,19 +54,19 @@ const App = {
           this._updateHeader();
           if (data.role === 'admin') {
             if (typeof AIAgent !== 'undefined') await AIAgent._loadFromFirebase();
-            AdminDashboard.showDashboard();
+            if (!this._restoreSavedState()) AdminDashboard.showDashboard();
           } else {
             await this._loadFirebaseOverrides();
-            this.showHome();
+            if (!this._restoreSavedState()) this.showHome();
           }
         } else {
           await this._loadFirebaseOverrides();
-          this.showLanding();
+          if (!this._restoreSavedState()) this.showLanding();
         }
       });
       // Fallback: if auth doesn't resolve within 3s, show landing anyway
       setTimeout(() => {
-        if (!authResolved) { authResolved = true; this._loadFirebaseOverrides(); this.showLanding(); }
+        if (!authResolved) { authResolved = true; this._loadFirebaseOverrides(); if (!this._restoreSavedState()) this.showLanding(); }
       }, 3000);
       return;
     }
@@ -436,13 +436,38 @@ const App = {
     return defaults;
   },
 
+  /** Restore state setelah refresh (dari sessionStorage) */
+  _restoreSavedState() {
+    try {
+      const raw = sessionStorage.getItem('app_last_state');
+      if (!raw) return false;
+      const state = JSON.parse(raw);
+      // Jangan restore halaman login/register — bisa infinite loop
+      if (!state.view || state.view === 'login' || state.view === 'register') return false;
+      // Restore halaman
+      switch (state.view) {
+        case 'home': this.showHome(); return true;
+        case 'landing': this.showLanding(); return true;
+        case 'subject': if (state.subjectId) { this.showSubject(state.subjectId); return true; } break;
+        case 'chapters': if (state.subjectId && state.grade) { this.showChapters(state.subjectId, state.grade); return true; } break;
+        case 'chapter': if (state.subjectId && state.grade && state.chapterId) { this.showChapter(state.subjectId, state.grade, state.chapterId); return true; } break;
+      }
+    } catch(e) {}
+    return false;
+  },
+
   _getSubjectInfo(subjectId) {
     return getSubjectInfo(subjectId) || SUBJECTS.find(s => s.id === 'informatika');
+  },
   },
 
   // ─── NAVIGASI ───
   pushState(state) {
     this.history.push(state);
+    // Save ke sessionStorage agar refresh tetap di halaman ini
+    try { sessionStorage.setItem('app_last_state', JSON.stringify(state)); } catch(e) {}
+    // Update URL hash
+    window.location.hash = state.view + (state.subjectId ? '/' + state.subjectId : '') + (state.grade ? '/' + state.grade : '') + (state.chapterId ? '/' + state.chapterId : '');
     const btnBack = document.getElementById('btnBack');
     const btnHome = document.getElementById('btnHome');
     if (!btnBack || !btnHome) return; // landing page doesn't have these
