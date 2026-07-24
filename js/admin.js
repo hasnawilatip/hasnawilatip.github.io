@@ -447,11 +447,11 @@ const AdminDashboard = {
     // Analisis semua mapel
     let html = '';
     const contentTypes = [
-      { key: 'content', label: '📖 Materi', icon: '📖' },
-      { key: 'quiz', label: '📝 Kuis', icon: '📝' },
-      { key: 'fillBlank', label: '✍️ Isian', icon: '✍️' },
-      { key: 'trueFalse', label: '✅ B/S', icon: '✅' },
-      { key: 'flashcards', label: '🃏 Flashcard', icon: '🃏' }
+      { key: 'content', label: '📖 Materi', icon: '📖', check: (ch) => ch.content && ch.content.length > 20 },
+      { key: 'quiz', label: '📝 Kuis', icon: '📝', check: (ch) => ch.quiz && Array.isArray(ch.quiz) && ch.quiz.length > 0 },
+      { key: 'fillBlank', label: '✍️ Isian', icon: '✍️', check: (ch) => ch.fillBlank && ch.fillBlank.questions && ch.fillBlank.questions.length > 0 },
+      { key: 'trueFalse', label: '✅ B/S', icon: '✅', check: (ch) => ch.trueFalse && ch.trueFalse.questions && ch.trueFalse.questions.length > 0 },
+      { key: 'flashcards', label: '🃏 Flashcard', icon: '🃏', check: (ch) => ch.flashcards && ch.flashcards.cards && ch.flashcards.cards.length > 0 }
     ];
 
     for (const s of subjects) {
@@ -468,7 +468,7 @@ const AdminDashboard = {
           let filled = 0;
           const missing = [];
           for (const ct of contentTypes) {
-            if (ch[ct.key] && (Array.isArray(ch[ct.key]) ? ch[ct.key].length > 0 : ch[ct.key].length > 20)) {
+            if (ct.check(ch)) {
               filled++;
             } else {
               missing.push(ct.label);
@@ -541,9 +541,13 @@ const AdminDashboard = {
 
       for (const ch of grade.chapters) {
         for (const type of contentTypes) {
-          // Cek apakah konten sudah ada
-          if (type === 'material' && ch.content && ch.content.length > 20) continue;
-          if (type !== 'material' && ch[type] && ch[type].length > 0) continue;
+          // Cek apakah konten sudah ada (pakai check functions)
+          const hasContent = (type === 'material' && ch.content && ch.content.length > 20)
+            || (type === 'quiz' && ch.quiz && Array.isArray(ch.quiz) && ch.quiz.length > 0)
+            || (type === 'fillblank' && ch.fillBlank && ch.fillBlank.questions && ch.fillBlank.questions.length > 0)
+            || (type === 'truefalse' && ch.trueFalse && ch.trueFalse.questions && ch.trueFalse.questions.length > 0)
+            || (type === 'flashcards' && ch.flashcards && ch.flashcards.cards && ch.flashcards.cards.length > 0);
+          if (hasContent) continue;
 
           const label = type === 'material' ? 'Materi' : type === 'quiz' ? 'Kuis' : type === 'fillblank' ? 'Isian' : type === 'truefalse' ? 'B/S' : 'Flashcard';
           document.getElementById('qfStatus').innerHTML += `<p style="font-size:0.8rem;">⏳ ${ch.title} → ${label}...</p>`;
