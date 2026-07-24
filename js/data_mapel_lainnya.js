@@ -5,40 +5,23 @@
    ══════════════════════════════════════════════════════════ */
 
 function _makeSkeleton(name, icon, color, colorLight, desc) {
-  function ch(id, title, sem, content, quiz) {
-    return { id, title, sem, content, quiz };
+  function ch(id, title, sem) {
+    return { id, title, sem, content: '', quiz: [] };
   }
   return {
     name, icon, color, colorLight, desc,
     chapters: [
-      ch(1, 'Bab 1 — Materi Semester 1', 1, `<h3>Bab 1</h3><p>Konten akan dilengkapi. Silakan tambahkan materi pembelajaran di sini.</p><div class="info-box"><span class="info-title">📌 Catatan:</span> Konten placeholder — isi dengan materi sesuai silabus Kurikulum Merdeka.</div>`,
-        [{ q:'Contoh soal pilihan ganda?', opts:['A','B','C','D'], ans:0},{ q:'Soal kedua?', opts:['Pilihan 1','Pilihan 2','Pilihan 3','Pilihan 4'], ans:1}]),
-      ch(2, 'Bab 2 — Materi Semester 1', 1, `<h3>Bab 2</h3><p>Konten akan dilengkapi.</p>`, [{ q:'Pertanyaan?', opts:['A','B','C','D'], ans:0}]),
-      ch(3, 'Bab 3 — Materi Semester 1', 1, `<h3>Bab 3</h3><p>Konten akan dilengkapi.</p>`, [{ q:'Pertanyaan?', opts:['A','B','C','D'], ans:0}]),
-      ch(4, 'Bab 4 — Materi Semester 2', 2, `<h3>Bab 4</h3><p>Konten akan dilengkapi.</p>`, [{ q:'Pertanyaan?', opts:['A','B','C','D'], ans:0}]),
-      ch(5, 'Bab 5 — Materi Semester 2', 2, `<h3>Bab 5</h3><p>Konten akan dilengkapi.</p>`, [{ q:'Pertanyaan?', opts:['A','B','C','D'], ans:0}]),
-      ch(6, 'Bab 6 — Materi Semester 2', 2, `<h3>Bab 6</h3><p>Konten akan dilengkapi.</p>`, [{ q:'Pertanyaan?', opts:['A','B','C','D'], ans:0}])
+      ch(1, 'Bab 1 — Materi Semester 1', 1),
+      ch(2, 'Bab 2 — Materi Semester 1', 1),
+      ch(3, 'Bab 3 — Materi Semester 1', 1),
+      ch(4, 'Bab 4 — Materi Semester 2', 2),
+      ch(5, 'Bab 5 — Materi Semester 2', 2),
+      ch(6, 'Bab 6 — Materi Semester 2', 2)
     ],
-    dragDrop: {
-      k7: [{ title: 'Drag & Drop (segera hadir)', pairs: [{ left: 'Istilah A', right: 'Definisi A' },{ left: 'Istilah B', right: 'Definisi B' }] }],
-      k8: [{ title: 'Drag & Drop (segera hadir)', pairs: [{ left: 'Istilah A', right: 'Definisi A' }] }],
-      k9: [{ title: 'Drag & Drop (segera hadir)', pairs: [{ left: 'Istilah A', right: 'Definisi A' }] }]
-    },
-    fillBlank: {
-      k7: { title: '✍️ Isian Singkat', questions: [{ q: 'Contoh pertanyaan isian?', ans: ['jawaban'] }] },
-      k8: { title: '✍️ Isian Singkat', questions: [{ q: 'Contoh pertanyaan isian?', ans: ['jawaban'] }] },
-      k9: { title: '✍️ Isian Singkat', questions: [{ q: 'Contoh pertanyaan isian?', ans: ['jawaban'] }] }
-    },
-    trueFalse: {
-      k7: { title: '✅❌ Benar/Salah', questions: [{ q: 'Pernyataan contoh?', ans: true, explanation: 'Penjelasan.' }] },
-      k8: { title: '✅❌ Benar/Salah', questions: [{ q: 'Pernyataan contoh?', ans: false, explanation: 'Penjelasan.' }] },
-      k9: { title: '✅❌ Benar/Salah', questions: [{ q: 'Pernyataan contoh?', ans: true, explanation: 'Penjelasan.' }] }
-    },
-    flashcards: {
-      k7: { title: '🃏 Flashcards', cards: [{ front: 'Istilah', back: 'Definisi / Penjelasan' }] },
-      k8: { title: '🃏 Flashcards', cards: [{ front: 'Istilah', back: 'Definisi / Penjelasan' }] },
-      k9: { title: '🃏 Flashcards', cards: [{ front: 'Istilah', back: 'Definisi / Penjelasan' }] }
-    }
+    dragDrop: { k7: [], k8: [], k9: [] },
+    fillBlank: { k7: { title: '✍️ Isian Singkat', questions: [] }, k8: { title: '✍️ Isian Singkat', questions: [] }, k9: { title: '✍️ Isian Singkat', questions: [] } },
+    trueFalse: { k7: { title: '✅❌ Benar/Salah', questions: [] }, k8: { title: '✅❌ Benar/Salah', questions: [] }, k9: { title: '✅❌ Benar/Salah', questions: [] } },
+    flashcards: { k7: { title: '🃏 Flashcards', cards: [] }, k8: { title: '🃏 Flashcards', cards: [] }, k9: { title: '🃏 Flashcards', cards: [] } }
   };
 }
 
