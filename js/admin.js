@@ -81,19 +81,24 @@ const AdminDashboard = {
     let contentOverview = '';
     SUBJECTS.forEach(s => {
       const data = App._getData(s.id);
-      let totalChapters = 0, filledChapters = 0;
+      let totalSlots = 0, filledSlots = 0;
       ['k7','k8','k9'].forEach(gk => {
         const grade = data[gk];
         if (grade && grade.chapters) {
           grade.chapters.forEach(ch => {
-            totalChapters++;
-            if ((ch.content && ch.content.length > 100) || (ch.quiz && ch.quiz.length > 0)) filledChapters++;
+            // 5 tipe konten per bab
+            totalSlots += 5;
+            if (ch.content && ch.content.length > 20) filledSlots++;
+            if (ch.quiz && Array.isArray(ch.quiz) && ch.quiz.length > 0) filledSlots++;
+            if (ch.fillBlank && ch.fillBlank.questions && ch.fillBlank.questions.length > 0) filledSlots++;
+            if (ch.trueFalse && ch.trueFalse.questions && ch.trueFalse.questions.length > 0) filledSlots++;
+            if (ch.flashcards && ch.flashcards.cards && ch.flashcards.cards.length > 0) filledSlots++;
           });
         }
       });
-      const pct = totalChapters > 0 ? Math.round((filledChapters / totalChapters) * 100) : 0;
-      const barColor = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--orange)' : 'var(--gray-300)';
-      contentOverview += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-200);"><span style="width:24px;">${s.icon}</span><span style="flex:1;font-size:0.85rem;font-weight:600;cursor:pointer;color:var(--blue);" onclick="AdminDashboard.editSubject('${s.id}')">${s.name}</span><span style="font-size:0.75rem;color:var(--gray-500);min-width:50px;">${filledChapters}/${totalChapters}</span><div style="width:80px;background:var(--gray-200);height:6px;border-radius:3px;"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div></div><span style="font-size:0.7rem;color:var(--gray-500);min-width:30px;">${pct}%</span></div>`;
+      const pct = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
+      const barColor = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--orange)' : 'var(--red)';
+      contentOverview += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-200);"><span style="width:24px;">${s.icon}</span><span style="flex:1;font-size:0.85rem;font-weight:600;cursor:pointer;color:var(--blue);" onclick="AdminDashboard.editSubject('${s.id}')">${s.name}</span><span style="font-size:0.75rem;color:var(--gray-500);min-width:55px;">${filledSlots}/${totalSlots}</span><div style="width:80px;background:var(--gray-200);height:6px;border-radius:3px;"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;"></div></div><span style="font-size:0.7rem;color:var(--gray-500);min-width:30px;">${pct}%</span></div>`;
     });
 
     main.innerHTML = `
