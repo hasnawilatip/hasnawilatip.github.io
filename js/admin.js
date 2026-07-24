@@ -950,6 +950,7 @@ const AdminDashboard = {
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
             <button class="btn btn-primary btn-sm" onclick="AdminDashboard._saveApiKey()">💾 Simpan</button>
             <button class="btn btn-success btn-sm" onclick="AdminDashboard._testApi()">🔌 Tes Koneksi</button>
+            <button class="btn btn-sm" style="background:#21262d;color:#58a6ff;" onclick="AdminDashboard._syncFromCloud()">☁️ Load dari Cloud</button>
             ${currentKey ? `<button class="btn btn-danger btn-sm" onclick="if(confirm('Hapus key?')){AIAgent.setApiKey('${activeProvider}','');AdminDashboard.showAISettings();}">🗑️</button>` : ''}
           </div>
           <div id="apiTestResult" style="padding:12px;border-radius:var(--radius-sm);display:none;"></div>
@@ -1020,7 +1021,26 @@ const AdminDashboard = {
       return;
     }
     AIAgent.setApiKey(AIAgent.getActiveProvider(), key);
+    // Force sync ke Firebase
+    if (typeof FB !== 'undefined' && FB.auth && FB.auth.currentUser) {
+      const s = AIAgent._loadSettings();
+      FB.db.ref('users/' + FB.auth.currentUser.uid + '/aiSettings').set(s).then(() => {
+        if (resultEl) { resultEl.innerHTML += ' <span style="color:var(--green);">☁️ Tersimpan ke Cloud!</span>'; }
+      }).catch(() => {});
+    }
     if (resultEl) { resultEl.style.display = 'block'; resultEl.style.background = 'var(--green-light)'; resultEl.innerHTML = '<span style="color:var(--green);">✅ API Key disimpan!</span>'; }
+    setTimeout(() => this.showAISettings(), 600);
+  },
+
+  /** Manual sync dari Firebase */
+  async _syncFromCloud() {
+    const resultEl = document.getElementById('apiTestResult');
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--blue-light)';
+    resultEl.innerHTML = '<span style="color:var(--blue);">☁️ Mengecek Cloud...</span>';
+    await AIAgent._loadFromFirebase();
+    resultEl.style.background = 'var(--green-light)';
+    resultEl.innerHTML = '<span style="color:var(--green);">✅ Settings di-load dari Cloud!</span>';
     setTimeout(() => this.showAISettings(), 600);
   },
 
