@@ -40,11 +40,31 @@ const AIAgent = {
   },
 
   _loadSettings() {
-    try { return JSON.parse(localStorage.getItem(this.SETTINGS_KEY)) || {}; }
-    catch (e) { return {}; }
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(this.SETTINGS_KEY)) || {}; }
+    catch (e) { s = {}; }
+    return s;
   },
 
-  _saveSettings(s) { localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(s)); },
+  _saveSettings(s) {
+    localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(s));
+    // Sync to Firebase agar tersedia di semua device admin
+    if (typeof FB !== 'undefined') {
+      FB.db.ref('settings/ai').set(s).catch(() => {});
+    }
+  },
+
+  /** Load settings from Firebase (called on init, overrides localStorage) */
+  async _loadFromFirebase() {
+    if (typeof FB === 'undefined') return;
+    try {
+      const snap = await FB.db.ref('settings/ai').once('value');
+      const fb = snap.val();
+      if (fb) {
+        localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(fb));
+      }
+    } catch(e) {}
+  },
 
   getActiveProvider() { return this._loadSettings().activeProvider || 'deepseek'; },
   setActiveProvider(id) { const s = this._loadSettings(); s.activeProvider = id; this._saveSettings(s); },

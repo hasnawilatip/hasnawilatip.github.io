@@ -53,6 +53,7 @@ const App = {
           }));
           this._updateHeader();
           if (data.role === 'admin') {
+            if (typeof AIAgent !== 'undefined') AIAgent._loadFromFirebase();
             AdminDashboard.showDashboard();
           } else {
             this.showHome();
